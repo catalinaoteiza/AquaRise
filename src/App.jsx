@@ -33,15 +33,19 @@ import EditProfileModal from './components/modals/EditProfileModal';
 import SubmitCompletionEvidenceModal from './components/modals/SubmitCompletionEvidenceModal';
 import LeaveMissionModal from './components/modals/LeaveMissionModal';
 
+// Shared Supabase Community Missions Service (Stage 7B)
+import {
+  fetchCommunityMissions,
+  createCommunityMission,
+  fetchUserJoinedMissionIds,
+  joinCommunityMission,
+  leaveCommunityMission
+} from './services/communityMissionService.js';
+
 // Storage & Utilities
 import {
   getStoredReports,
   saveStoredReport,
-  getStoredMissions,
-  saveStoredMission,
-  updateStoredMission,
-  getJoinedMissionIds,
-  toggleJoinedMission,
   getStoredParticipations,
   saveParticipationRecord,
   removeParticipationRecord,
@@ -66,12 +70,12 @@ function AquaRiseApp() {
   // Modals state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // Auto-open password recovery modal ONLY when isPasswordRecovery is true (after session is established)
   useEffect(() => {
     if (isPasswordRecovery) {
       setIsAuthModalOpen(true);
     }
   }, [isPasswordRecovery]);
+
   const [isGuardianModalOpen, setIsGuardianModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -93,22 +97,53 @@ function AquaRiseApp() {
 
   // Local Storage Synchronized State
   const [reports, setReports] = useState(() => getStoredReports());
-  const [missions, setMissions] = useState(() => getStoredMissions());
-  const [joinedMissionIds, setJoinedMissionIds] = useState(() => getJoinedMissionIds());
   const [participations, setParticipations] = useState(() => getStoredParticipations());
   const [certificates, setCertificates] = useState(() => getStoredCertificates());
 
-  // Safe one-time cleanup migration of demo records
+  // Shared Supabase Community Missions & Joined IDs (Stage 7B)
+  const [communityMissions, setCommunityMissions] = useState([]);
+  const [joinedMissionIds, setJoinedMissionIds] = useState([]);
+  const [loadingMissions, setLoadingMissions] = useState(true);
+
+  const loadCommunityMissions = async () => {
+    setLoadingMissions(true);
+    try {
+      const fetched = await fetchCommunityMissions();
+      setCommunityMissions(fetched);
+    } catch (err) {
+      console.error('[AquaRise App] Error fetching community missions:', err);
+    } finally {
+      setLoadingMissions(false);
+    }
+  };
+
+  const loadUserJoinedMissions = async () => {
+    if (!user || !user.id) {
+      setJoinedMissionIds([]);
+      return;
+    }
+    try {
+      const joined = await fetchUserJoinedMissionIds(user.id);
+      setJoinedMissionIds(joined);
+    } catch (err) {
+      console.error('[AquaRise App] Error fetching joined mission IDs:', err);
+    }
+  };
+
   useEffect(() => {
     cleanDemoRecordsFromStorage();
+    loadCommunityMissions();
   }, []);
 
-  // Synchronize state across window tabs
+  useEffect(() => {
+    loadUserJoinedMissions();
+  }, [user]);
+
   useEffect(() => {
     const syncParticipations = () => {
       setParticipations(getStoredParticipations());
-      setJoinedMissionIds(getJoinedMissionIds());
-      setMissions(getStoredMissions());
+      loadCommunityMissions();
+      loadUserJoinedMissions();
     };
     window.addEventListener('aquarise_participation_changed', syncParticipations);
     window.addEventListener('storage', syncParticipations);
@@ -116,7 +151,7 @@ function AquaRiseApp() {
       window.removeEventListener('aquarise_participation_changed', syncParticipations);
       window.removeEventListener('storage', syncParticipations);
     };
-  }, []);
+  }, [user]);
 
   const showToast = (message, type = 'success') => {
     setToastInfo({ message, type });
@@ -141,141 +176,88 @@ function AquaRiseApp() {
     setSelectedMission(mission);
   };
 
-  const handleViewCertificate = (certificate) => {
-    setSelectedCertificate(certificate);
-    setActiveTab('certificate');
+  const handleStartCreateCleanup = (initialData = null) => {
+    if (!user) {
+      showToast('Please sign in to organize a cleanup mission.', 'info');
+      setIsAuthModalOpen(true);
+      return;
+    }
+    if (!profile?.isGuardian) {
+      showToast('Only active AquaRise Guardians can organize cleanups. Become a Guardian first!', 'info');
+      setIsGuardianModalOpen(true);
+      return;
+    }
+    setCreateInitialData(initialData);
+    setActiveTab('create-cleanup');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleStartCreateCleanup = (initialData = null) => {
-    setCreateInitialData(initialData);
+  const handleCreateCommunityMission = async (missionData) => {
+    if (!user) {
+      showToast('You must be signed in to create a cleanup mission.', 'error');
+      return { error: 'You must be signed in to create a cleanup mission.' };
+    }
+    const res = await createCommunityMission(missionData, user.id);
+    if (res?.error) {
+      return res;
+    }
+    if (res?.mission) {
+      await loadCommunityMissions();
+      await loadUserJoinedMissions();
+      showToast('Community cleanup mission created and published!', 'success');
+      return res;
+    }
+    return { error: 'Could not create mission.' };
+  };
+
+  const handleJoinMission = async (missionId, eventDate) => {
+    if (!user) {
+      showToast('Please sign in to join community cleanup missions.', 'info');
+      setIsAuthModalOpen(true);
+      return { error: 'Please sign in to join cleanups.' };
+    }
     if (!profile?.isGuardian) {
-      showToast('Guardian status required to organize a cleanup mission. Join as Guardian first!', 'info');
+      showToast('Become an AquaRise Guardian to join community cleanup missions.', 'info');
       setIsGuardianModalOpen(true);
-    } else {
-      setActiveTab('create-cleanup');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return { error: 'Become an AquaRise Guardian to join community cleanup missions.' };
     }
+    const res = await joinCommunityMission(missionId, user.id, eventDate);
+    if (res?.error) {
+      showToast(res.error, 'error');
+      return res;
+    }
+    await loadCommunityMissions();
+    await loadUserJoinedMissions();
+    showToast('You have joined this cleanup mission!', 'success');
+    return { success: true };
   };
 
-  const handleLeaveMission = (targetItemOrId) => {
-    if (!targetItemOrId) return;
-
-    const targetId = typeof targetItemOrId === 'object'
-      ? (targetItemOrId.id || targetItemOrId.missionId || targetItemOrId.cleanupMissionId)
-      : targetItemOrId;
-
-    const updatedRecords = removeParticipationRecord(targetId);
-    setParticipations(updatedRecords);
-    setJoinedMissionIds(getJoinedMissionIds());
-
-    setMissions((currentMissions) => {
-      return currentMissions.map((m) => {
-        if (m.id === targetId || m.missionId === targetId) {
-          const currentCount = m.participatingGuardians || m.participantCount || 1;
-          const newCount = Math.max(0, currentCount - 1);
-          const updatedM = {
-            ...m,
-            participatingGuardians: newCount,
-            participantCount: newCount
-          };
-          updateStoredMission(updatedM);
-          return updatedM;
-        }
-        return m;
-      });
-    });
-
-    showToast('You left this cleanup mission.', 'info');
-  };
-
-  const handleToggleJoin = (missionId) => {
-    const isCurrentlyJoined = joinedMissionIds.includes(missionId);
-
-    if (isCurrentlyJoined) {
-      handleLeaveMission(missionId);
-    } else {
-      const updatedJoinedIds = toggleJoinedMission(missionId);
-      setJoinedMissionIds(updatedJoinedIds);
-
-      const targetMission = missions.find((m) => m.id === missionId);
-      if (targetMission) {
-        const newParticipantCount = (targetMission.participatingGuardians || 0) + 1;
-        const updatedMissionObj = {
-          ...targetMission,
-          participatingGuardians: newParticipantCount,
-          participantCount: newParticipantCount
-        };
-
-        const allUpdatedMissions = updateStoredMission(updatedMissionObj);
-        setMissions(allUpdatedMissions);
-
-        saveParticipationRecord({
-          id: targetMission.id,
-          missionId: targetMission.id,
-          title: targetMission.name || targetMission.title,
-          waterbodyName: targetMission.waterbodyName,
-          location: targetMission.location || targetMission.meetingLocation,
-          date: targetMission.date || targetMission.status,
-          hoursEstimate: 3,
-          status: 'Joined',
-          verificationStatus: 'joined',
-          completedAt: null
-        });
-        setParticipations(getStoredParticipations());
-        showToast(`Joined ${targetMission.name || targetMission.title}!`);
-      }
+  const handleLeaveMission = async (missionId) => {
+    if (!user) {
+      return { error: 'Please sign in.' };
     }
+    const res = await leaveCommunityMission(missionId, user.id);
+    if (res?.error) {
+      showToast(res.error, 'error');
+      return res;
+    }
+    await loadCommunityMissions();
+    await loadUserJoinedMissions();
+    showToast('You have left the cleanup mission.', 'info');
+    return { success: true };
   };
 
   const handleReportSubmitted = (newReport) => {
-    const updatedReports = saveStoredReport(newReport);
-    setReports(updatedReports);
-    updateProfile({
-      reportsSubmitted: (profile.reportsSubmitted || 0) + 1,
-      impactPoints: (profile.impactPoints || 0) + 50
-    });
-    showToast('Report submitted (+50 Impact Points)!');
+    saveStoredReport(newReport);
+    setReports(getStoredReports());
+    setIsReportModalOpen(false);
+    showToast('Pollution report filed successfully.', 'success');
   };
 
-  const handleMissionSubmitted = (newMission) => {
-    const updatedMissions = saveStoredMission(newMission);
-    setMissions(updatedMissions);
-
-    const updatedJoinedIds = toggleJoinedMission(newMission.id);
-    setJoinedMissionIds(updatedJoinedIds);
-
-    updateProfile({
-      missionsCreated: (profile.missionsCreated || 0) + 1,
-      impactPoints: (profile.impactPoints || 0) + 100
-    });
-
-    saveParticipationRecord({
-      id: newMission.id,
-      missionId: newMission.id,
-      title: newMission.name || newMission.title,
-      waterbodyName: newMission.waterbodyName,
-      location: newMission.location || newMission.meetingLocation,
-      date: newMission.date,
-      hoursEstimate: 4,
-      status: 'Joined',
-      verificationStatus: 'joined',
-      completedAt: null
-    });
-    setParticipations(getStoredParticipations());
-
-    setSelectedMissionDetail(newMission);
-    setActiveTab('cleanups');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    showToast('Cleanup proposed successfully (+100 Impact Points)!');
-  };
-
-  // Connected Edit Profile via AuthContext (Requirement #7)
-  const handleProfileUpdate = async (updatedData) => {
+  const handleSaveProfile = async (updatedProfile) => {
     try {
-      const res = await updateProfile(updatedData);
+      const res = await updateProfile(updatedProfile);
       if (res?.error) {
-        showToast(res.error, 'error');
         return res;
       }
       showToast('Profile changes saved.', 'success');
@@ -286,17 +268,12 @@ function AquaRiseApp() {
     }
   };
 
-  // Connected Guardian Onboarding via AuthContext (Requirement #5 & #6)
   const handleGuardianJoined = async (guardianData) => {
-    const role = typeof guardianData === 'object' ? guardianData.role : guardianData;
     const res = await updateGuardianStatus(guardianData);
-
     if (res?.error) {
       return res;
     }
-
     showToast('Welcome to the AquaRise Guardian Network.', 'success');
-
     if (createInitialData) {
       setActiveTab('create-cleanup');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -319,70 +296,43 @@ function AquaRiseApp() {
     showToast('Evidence submitted for verification.', 'success');
   };
 
-  const handleVerifySubmission = (recordId, newVerificationStatus, reviewerReason = '') => {
-    const currentList = getStoredParticipations();
-    const target = currentList.find((r) => r.id === recordId || r.participationRecordId === recordId);
-    if (!target) return;
+  const handleGenerateCertificate = (record) => {
+    const isOfficial = isEvidenceOfficiallyVerified(record);
 
-    const isApproved = newVerificationStatus === 'verified';
-    const updatedRecord = {
-      ...target,
-      verificationStatus: newVerificationStatus,
-      status: isApproved ? 'Verified Complete' : newVerificationStatus === 'needs_more_evidence' ? 'Needs More Evidence' : 'Not Verified',
-      reviewerReason,
-      verifiedAt: isApproved ? new Date().toISOString().split('T')[0] : null
+    const certData = {
+      waterbodyName: record.waterbodyName || record.title || 'Waterbody Cleanup',
+      guardianName: profile?.name || 'AquaRise Volunteer',
+      organizerName: record.organizer || 'AquaRise Network',
+      date: record.date || new Date().toLocaleDateString(),
+      location: record.location || 'Local Waters',
+      volunteerHours: record.volunteerHours || 3,
+      debrisCollectedKg: record.debrisCollectedKg || 15,
+      isVerified: isOfficial,
+      issuerName: isOfficial ? 'AquaRise Environmental Verification Council' : 'AquaRise Self-Reported Log',
+      verifiedAt: record.verifiedAt || new Date().toISOString()
     };
 
-    saveParticipationRecord(updatedRecord);
-    setParticipations(getStoredParticipations());
-
-    if (isApproved) {
-      const certRecord = createCertificateRecord({
-        participationRecord: updatedRecord,
-        recipientProfile: profile
-      });
-      saveCertificateRecord(certRecord);
-      setCertificates(getStoredCertificates());
-      showToast('Evidence approved and certificate issued!', 'success');
-    } else {
-      showToast(`Verification status updated to ${updatedRecord.status}.`, 'info');
-    }
+    const newCert = createCertificateRecord(certData);
+    saveCertificateRecord(newCert);
+    setCertificates(getStoredCertificates());
+    setSelectedCertificate(newCert);
+    setActiveTab('certificate');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    showToast(isOfficial ? 'Official Certificate generated!' : 'Self-reported impact record saved.', 'success');
   };
 
-  const handleGenerateCertificate = (participationRecord) => {
-    if (!isEvidenceOfficiallyVerified(participationRecord)) {
-      showToast('Evidence must be officially verified before issuing a certificate.', 'error');
-      return;
-    }
-
-    const certRecord = createCertificateRecord({
-      participationRecord,
-      recipientProfile: profile
-    });
-    saveCertificateRecord(certRecord);
-    setCertificates(getStoredCertificates());
-    setSelectedCertificate(certRecord);
+  const handleViewCertificate = (cert) => {
+    setSelectedCertificate(cert);
     setActiveTab('certificate');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  // Render Loading Screen during Auth Session Startup (Section 15)
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#DAF6F6] flex items-center justify-center p-4">
-        <div className="text-center space-y-3">
-          <div className="w-10 h-10 border-4 border-[#19887F]/30 border-t-[#19887F] rounded-full animate-spin mx-auto"></div>
-          <p className="text-xs font-bold text-[#19887F] tracking-wider uppercase">Loading AquaRise Session...</p>
-        </div>
-      </div>
-    );
-  }
 
   const renderActiveView = () => {
     switch (activeTab) {
       case 'home':
         return (
           <HomeView
+            user={user}
             profile={profile}
             onExploreCleanups={() => setActiveTab('cleanups')}
             onBecomeGuardian={handleOpenGuardian}
@@ -395,16 +345,19 @@ function AquaRiseApp() {
         return (
           <ExploreView
             waterbodies={MOCK_WATERBODIES}
-            reports={reports}
-            missions={missions}
-            onViewDetails={handleViewWaterbodyDetails}
+            communityMissions={communityMissions}
+            joinedMissionIds={joinedMissionIds}
+            user={user}
+            profile={profile}
+            onViewWaterbody={handleViewWaterbodyDetails}
+            onProposeCleanup={(wb) => handleStartCreateCleanup(wb)}
             onViewMission={handleViewMissionDetails}
-            onViewReport={handleViewReportDetails}
-            onProposeCleanup={(reportOrWb) => handleStartCreateCleanup(reportOrWb)}
-            onReportPollution={() => {
-              setActiveTab('report');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
+            onJoinMission={handleJoinMission}
+            onLeaveMission={handleLeaveMission}
+            onReportPollution={handleOpenReportModal}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+            onBecomeGuardian={handleOpenGuardian}
+            onToast={showToast}
           />
         );
 
@@ -412,10 +365,12 @@ function AquaRiseApp() {
         return (
           <WaterbodyDetailView
             waterbody={selectedWaterbody}
-            missions={missions}
-            onBack={() => setActiveTab('explore')}
+            onBackToExplore={() => setActiveTab('explore')}
             onProposeCleanup={(wb) => handleStartCreateCleanup(wb)}
-            onViewMission={(m) => handleViewMissionDetails(m)}
+            onReportPollution={(wb) => {
+              setProposeWaterbody(wb);
+              setIsReportModalOpen(true);
+            }}
           />
         );
 
@@ -423,12 +378,18 @@ function AquaRiseApp() {
         return (
           <CleanupsView
             waterbodies={MOCK_WATERBODIES}
-            missions={missions}
+            missions={communityMissions}
             joinedMissionIds={joinedMissionIds}
+            user={user}
+            profile={profile}
             onViewMission={handleViewMissionDetails}
+            onJoinMission={handleJoinMission}
+            onLeaveMission={handleLeaveMission}
             onNavigateExplore={() => setActiveTab('explore')}
             onCreateCleanup={() => handleStartCreateCleanup()}
             onBecomeGuardian={handleOpenGuardian}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+            onToast={showToast}
           />
         );
 
@@ -436,23 +397,28 @@ function AquaRiseApp() {
         return (
           <MyCleanupsView
             user={user}
+            profile={profile}
+            communityMissions={communityMissions}
+            joinedMissionIds={joinedMissionIds}
             onOpenAuth={() => setIsAuthModalOpen(true)}
-            missions={missions}
-            participations={participations}
-            onViewMission={handleViewMissionDetails}
+            onBecomeGuardian={handleOpenGuardian}
             onNavigateCleanups={() => setActiveTab('cleanups')}
-            onOpenSubmitEvidence={(m) => setEvidenceTargetMission(m)}
-            onOpenLeaveMission={(m) => setLeaveTargetMission(m)}
+            onViewMission={handleViewMissionDetails}
+            onJoinMission={handleJoinMission}
+            onLeaveMission={handleLeaveMission}
+            onOpenEvidenceModal={(m) => setEvidenceTargetMission(m)}
+            onOpenLeaveModal={(m) => setLeaveTargetMission(m)}
+            onToast={showToast}
           />
         );
 
       case 'report':
         return (
           <ReportPollutionView
-            onSubmitReportSuccess={handleReportSubmitted}
+            profile={profile}
+            waterbodies={MOCK_WATERBODIES}
+            onSubmitReportSuccess={(newReport) => handleReportSubmitted(newReport)}
             onNavigateExplore={() => setActiveTab('explore')}
-            onViewReport={(rep) => handleViewReportDetails(rep)}
-            onProposeCleanup={(rep) => handleStartCreateCleanup(rep)}
           />
         );
 
@@ -468,18 +434,25 @@ function AquaRiseApp() {
       case 'create-cleanup':
         return (
           <CreateCleanupView
-            waterbodies={MOCK_WATERBODIES}
+            user={user}
+            profile={profile}
             initialData={createInitialData}
-            onCancel={() => setActiveTab('cleanups')}
-            onSubmitSuccess={(newMission) => handleMissionSubmitted(newMission)}
+            onCreateMission={handleCreateCommunityMission}
+            onNavigateExplore={() => setActiveTab('explore')}
+            onSubmitSuccess={(newMission) => {
+              setActiveTab('cleanups');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           />
         );
 
       case 'community':
         return (
           <CommunityView
+            user={user}
+            profile={profile}
             reports={reports}
-            missions={missions}
+            missions={communityMissions}
             onViewReport={handleViewReportDetails}
             onProposeCleanup={(rep) => handleStartCreateCleanup(rep)}
             onViewMission={handleViewMissionDetails}
@@ -500,7 +473,7 @@ function AquaRiseApp() {
             user={user}
             profile={profile}
             joinedMissionIds={joinedMissionIds}
-            missions={missions}
+            missions={communityMissions}
             participations={participations}
             certificates={certificates}
             onOpenAuth={() => setIsAuthModalOpen(true)}
@@ -535,6 +508,7 @@ function AquaRiseApp() {
       default:
         return (
           <HomeView
+            user={user}
             profile={profile}
             onExploreCleanups={() => setActiveTab('cleanups')}
             onBecomeGuardian={handleOpenGuardian}
@@ -597,6 +571,13 @@ function AquaRiseApp() {
         mission={selectedMission}
         isOpen={Boolean(selectedMission)}
         onClose={() => setSelectedMission(null)}
+        user={user}
+        profile={profile}
+        joinedMissionIds={joinedMissionIds}
+        onJoinMission={handleJoinMission}
+        onLeaveMission={handleLeaveMission}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onBecomeGuardian={handleOpenGuardian}
         onSponsorClick={() => setSelectedSupply(MOCK_SUPPLIES[0])}
         onToast={showToast}
       />
@@ -604,8 +585,9 @@ function AquaRiseApp() {
       <ReportPollutionModal
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
-        onSubmitSuccess={handleReportSubmitted}
+        onSubmitSuccess={(newReport) => handleReportSubmitted(newReport)}
         onNavigateReport={() => {
+          setIsReportModalOpen(false);
           setActiveTab('report');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
@@ -613,12 +595,11 @@ function AquaRiseApp() {
       />
 
       <RemoteSupportModal
-        supply={selectedSupply}
+        supplyItem={selectedSupply}
         isOpen={Boolean(selectedSupply)}
         onClose={() => setSelectedSupply(null)}
-        onSponsorSuccess={(sup) => {
-          updateProfile({ impactPoints: (profile.impactPoints || 0) + 30 });
-          showToast(`Sponsored ${sup.name} (+30 Impact Points)!`);
+        onPledgeSuccess={(pledgeData) => {
+          showToast(`Thank you for pledging support for ${pledgeData.itemName}!`, 'success');
         }}
       />
 
@@ -626,16 +607,19 @@ function AquaRiseApp() {
         waterbody={proposeWaterbody}
         isOpen={Boolean(proposeWaterbody)}
         onClose={() => setProposeWaterbody(null)}
-        onSubmitSuccess={(m) => handleMissionSubmitted(m)}
+        onNavigateCreate={(prefill) => {
+          setProposeWaterbody(null);
+          handleStartCreateCleanup(prefill);
+        }}
       />
 
       <SupplyPledgeModal
         mission={pledgeTargetMission}
         isOpen={Boolean(pledgeTargetMission)}
         onClose={() => setPledgeTargetMission(null)}
-        onPledgeSuccess={(m, items) => {
-          updateProfile({ impactPoints: (profile.impactPoints || 0) + 40 });
-          showToast(`Pledged supplies for ${m.name} (+40 Impact Points)!`);
+        onPledgeSubmitted={(data) => {
+          showToast('Supply pledge recorded! Thank you for supporting this cleanup.', 'success');
+          setPledgeTargetMission(null);
         }}
       />
 
@@ -643,24 +627,24 @@ function AquaRiseApp() {
         profile={profile}
         isOpen={isEditProfileOpen}
         onClose={() => setIsEditProfileOpen(false)}
-        onSaveProfile={handleProfileUpdate}
+        onSaveProfile={(updatedProfile) => handleSaveProfile(updatedProfile)}
       />
 
       <SubmitCompletionEvidenceModal
         mission={evidenceTargetMission}
-        existingRecord={evidenceTargetMission}
         isOpen={Boolean(evidenceTargetMission)}
         onClose={() => setEvidenceTargetMission(null)}
-        onSubmitEvidence={(evidenceData) => handleEvidenceSubmitted(evidenceData)}
-        onVerifySubmission={(recordId, newStatus, reason) => handleVerifySubmission(recordId, newStatus, reason)}
-        userProfile={profile}
+        onSubmitEvidence={(data) => handleEvidenceSubmitted(data)}
       />
 
       <LeaveMissionModal
         mission={leaveTargetMission}
         isOpen={Boolean(leaveTargetMission)}
         onClose={() => setLeaveTargetMission(null)}
-        onConfirmLeave={(targetMissionOrId) => handleLeaveMission(targetMissionOrId)}
+        onLeaveConfirmed={(missionId) => {
+          handleLeaveMission(missionId);
+          setLeaveTargetMission(null);
+        }}
       />
     </div>
   );

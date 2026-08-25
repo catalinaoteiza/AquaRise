@@ -1,17 +1,53 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Bookmark, Calendar, MapPin, ExternalLink, Compass, Trash2, CheckCircle2, ShieldCheck, Flag, Info, FileCheck, Clock, AlertCircle } from 'lucide-react';
 import { getParticipations, leaveOrRemoveCleanup, categorizeParticipations } from '../../services/participationService';
+import { deduplicateCleanups } from '../../utils/cleanupUtils.js';
 
 export default function MyCleanupsView({
   user,
+  communityMissions = [],
+  joinedMissionIds = [],
   onOpenAuth,
   onNavigateCleanups,
   onViewMission,
+  onJoinMission,
+  onLeaveMission,
   onOpenEvidenceModal,
   onOpenLeaveModal,
   onToast
 }) {
   const [participations, setParticipations] = useState([]);
+
+  const loadParticipations = () => {
+    setParticipations(getParticipations());
+  };
+
+  useEffect(() => {
+    loadParticipations();
+
+    const handleStorageChange = () => loadParticipations();
+    window.addEventListener('aquarise_participation_changed', handleStorageChange);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('aquarise_participation_changed', handleStorageChange);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  const allMyCleanups = useMemo(() => {
+    if (!user) return [];
+
+    // 1. Community missions joined by user or organized by user in Supabase
+    const userCommunityMissions = (communityMissions || []).filter(
+      (m) => joinedMissionIds.includes(m.id) || m.organizerId === user.id
+    );
+
+    // 2. Saved external opportunities
+    const externalSaved = (participations || []).filter((p) => p.type === 'external');
+
+    return deduplicateCleanups([...userCommunityMissions, ...externalSaved]);
+  }, [user, communityMissions, joinedMissionIds, participations]);
 
   if (!user) {
     return (
@@ -38,26 +74,9 @@ export default function MyCleanupsView({
     );
   }
 
-  const loadParticipations = () => {
-    setParticipations(getParticipations());
-  };
-
-  useEffect(() => {
-    loadParticipations();
-
-    const handleStorageChange = () => loadParticipations();
-    window.addEventListener('aquarise_participation_changed', handleStorageChange);
-    window.addEventListener('storage', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('aquarise_participation_changed', handleStorageChange);
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
-
   const handleRemove = (item) => {
-    if (item.type === 'community' || item.isUserCreated) {
-      if (onOpenLeaveModal) onOpenLeaveModal(item);
+    if (item.isCommunityOrganized || item.isUserCreated || item.organizerId) {
+      if (onLeaveMission) onLeaveMission(item.id);
     } else {
       const res = leaveOrRemoveCleanup(item);
       loadParticipations();
@@ -65,7 +84,7 @@ export default function MyCleanupsView({
     }
   };
 
-  const { upcoming, past } = categorizeParticipations(participations);
+  const { upcoming, past } = categorizeParticipations(allMyCleanups);
 
   return (
     <div className="bg-[#DAF6F6] min-h-screen pt-28 pb-16">

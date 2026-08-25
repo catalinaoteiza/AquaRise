@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Flag, MapPin, Calendar, Clock, Users, ArrowLeft, AlertCircle, CheckCircle2, Share2, ArrowRight, Upload, Image, X } from 'lucide-react';
+import { Flag, MapPin, Calendar, Clock, Users, ArrowLeft, AlertCircle, CheckCircle2, Share2, ArrowRight, Upload, Image, X, Loader2 } from 'lucide-react';
 import LocationMapPlaceholder from '../common/LocationMapPlaceholder';
 
-export default function CreateCleanupView({ initialData, onSubmitSuccess, onNavigateExplore, onViewMission }) {
+export default function CreateCleanupView({ initialData, onSubmitSuccess, onCreateMission, user, profile = {}, onNavigateExplore, onViewMission }) {
   const fileInputRef = useRef(null);
   const todayStr = new Date().toISOString().split('T')[0];
+
+  const safeProfile = profile || {};
 
   const [formData, setFormData] = useState({
     title: '',
@@ -17,13 +19,14 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onNavi
     startTime: '10:00',
     estimatedDuration: '2 hours',
     capacity: '25',
-    organizerName: 'AquaRise Guardian',
+    organizerName: safeProfile.name || safeProfile.displayName || safeProfile.fullName || 'AquaRise Guardian',
     description: '',
     suppliesNeeded: 'Trash bags, gloves, grabbers'
   });
 
   const [bannerPhoto, setBannerPhoto] = useState(null);
   const [dateError, setDateError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedMission, setSubmittedMission] = useState(null);
   const [copiedShare, setCopiedShare] = useState(false);
 
@@ -98,11 +101,16 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onNavi
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setDateError('');
 
-    // Strict future/today date and time validation (Section 7 & Test E)
+    if (!user || !user.id) {
+      setDateError('You must be signed in to your AquaRise account to create a cleanup mission.');
+      return;
+    }
+
+    // Strict future/today date and time validation
     if (formData.date < todayStr) {
       setDateError('Cleanup date and time must be now or in the future.');
       return;
@@ -122,7 +130,6 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onNavi
 
     const fullLocation = [formData.city, formData.country].filter(Boolean).join(', ') || formData.location || 'Global Waters';
 
-    // Formatted start time string
     let formattedTime = formData.startTime || '10:00 AM';
     if (formData.startTime && formData.startTime.includes(':')) {
       const [h, m] = formData.startTime.split(':').map(Number);
@@ -132,9 +139,9 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onNavi
       formattedTime = `${displayH}:${displayM} ${ampm}`;
     }
 
-    // New Mission created with default UNVERIFIED status (Section 3 & Test C)
+    const currentOrganizerName = safeProfile.name || safeProfile.displayName || safeProfile.fullName || formData.organizerName.trim() || 'AquaRise Guardian';
+
     const newMission = {
-      id: `mission-${Date.now()}`,
       title: formData.title.trim() || `${formData.waterbodyName} Cleanup`,
       name: formData.title.trim() || `${formData.waterbodyName} Cleanup`,
       waterbodyName: formData.waterbodyName.trim() || 'Local Waterbody',
@@ -147,23 +154,38 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onNavi
       rawStartTime: formData.startTime,
       estimatedDuration: formData.estimatedDuration.trim() || 'Approx. 2 hours',
       status: 'Upcoming',
-      verificationStatus: 'unverified', // CRITICAL: Default to unverified (Section 3)
-      organizer: formData.organizerName.trim() || 'AquaRise Guardian',
-      organizerType: 'AquaRise Guardian',
-      isCommunityOrganized: true,
-      isUserCreated: true,
-      participantCount: 1,
-      participatingGuardians: 1,
+      verificationStatus: 'unverified',
+      organizer: currentOrganizerName,
       maxCapacity: parseInt(formData.capacity, 10) || 25,
       bannerImage: bannerPhoto,
       image: bannerPhoto,
       description: formData.description.trim() || `Community-led cleanup mission dedicated to removing plastic waste and debris from ${formData.waterbodyName}.`,
-      suppliesNeeded: formData.suppliesNeeded.split(',').map((s) => s.trim()).filter(Boolean),
-      createdAt: new Date().toISOString()
+      suppliesNeeded: formData.suppliesNeeded.split(',').map((s) => s.trim()).filter(Boolean)
     };
 
-    setSubmittedMission(newMission);
-    onSubmitSuccess(newMission);
+    setIsSubmitting(true);
+
+    try {
+      if (onCreateMission) {
+        const res = await onCreateMission(newMission);
+        if (res?.error) {
+          setDateError(res.error);
+          setIsSubmitting(false);
+          return;
+        }
+        if (res?.mission) {
+          setSubmittedMission(res.mission);
+          if (onSubmitSuccess) onSubmitSuccess(res.mission);
+        }
+      } else if (onSubmitSuccess) {
+        setSubmittedMission(newMission);
+        onSubmitSuccess(newMission);
+      }
+    } catch (err) {
+      setDateError("We couldn't create your community mission. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCopyShare = () => {
@@ -176,308 +198,210 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onNavi
 
   if (submittedMission) {
     return (
-      <div className="bg-[#DAF6F6] min-h-screen pt-28 pb-20">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 animate-fadeIn">
-          
-          <div className="bg-white p-8 rounded-3xl border border-[#92F1EC] shadow-xl text-center space-y-6">
-            <div className="w-16 h-16 rounded-2xl bg-teal-50 border border-teal-200 text-[#19887F] mx-auto flex items-center justify-center shadow-md">
+      <div className="bg-[#DAF6F6] min-h-screen pt-28 pb-16 flex items-center justify-center p-4">
+        <div className="max-w-2xl w-full bg-white rounded-3xl border border-[#92F1EC] p-8 sm:p-10 shadow-2xl space-y-8 animate-fadeIn">
+          <div className="text-center space-y-3">
+            <div className="w-16 h-16 rounded-full bg-teal-100 border border-[#35AEAC] text-[#19887F] mx-auto flex items-center justify-center shadow-inner">
               <CheckCircle2 className="w-10 h-10" />
             </div>
+            <span className="inline-block px-3.5 py-1 rounded-full bg-teal-50 border border-[#92F1EC] text-[#19887F] text-xs font-black uppercase tracking-wider">
+              Mission Published
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-[#071325]">
+              {submittedMission.title}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 font-medium max-w-lg mx-auto">
+              Your community cleanup mission is live! Community members across the AquaRise network can now discover and join your event.
+            </p>
+          </div>
 
-            <div className="space-y-2">
-              <span className="text-xs font-black tracking-widest text-[#19887F] uppercase bg-teal-50 px-3.5 py-1 rounded-full border border-teal-200 inline-block">
-                AquaRise Mission Created • Unverified
-              </span>
-              <h1 className="text-3xl font-black text-ocean-950">{submittedMission.title}</h1>
-              <p className="text-sm text-slate-600 max-w-lg mx-auto font-medium">
-                Your cleanup mission is scheduled for <strong>{submittedMission.date}</strong> at <strong>{submittedMission.startTime}</strong> ({submittedMission.estimatedDuration}).
-              </p>
+          <div className="bg-[#F4FBFB] rounded-2xl p-5 border border-[#92F1EC] space-y-3 text-xs sm:text-sm">
+            <div className="flex items-center gap-2 text-[#071325] font-bold">
+              <MapPin className="w-4 h-4 text-[#19887F]" />
+              <span>{submittedMission.waterbodyName} — {submittedMission.location}</span>
             </div>
-
-            {/* Banner Preview if uploaded */}
-            {submittedMission.bannerImage && (
-              <div className="rounded-2xl overflow-hidden border border-teal-200 max-h-48 bg-slate-100">
-                <img src={submittedMission.bannerImage} alt="Cleanup Banner" className="w-full h-full object-cover" />
-              </div>
-            )}
-
-            <div className="p-4 rounded-2xl bg-[#DAF6F6]/50 border border-[#92F1EC] text-xs text-slate-700 space-y-2">
-              <div className="flex items-center justify-center gap-2 font-bold text-[#19887F]">
-                <MapPin className="w-4 h-4" />
-                <span>{submittedMission.location}</span>
-              </div>
-              <p className="font-medium text-slate-600">
-                Meeting Point: <strong>{submittedMission.meetingLocation}</strong>
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-              <button
-                onClick={() => onViewMission && onViewMission(submittedMission)}
-                className="w-full sm:w-auto px-6 py-3 rounded-full bg-[#19887F] hover:bg-[#35AEAC] text-white font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-2"
-              >
-                <span>View Mission Details</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={handleCopyShare}
-                className="w-full sm:w-auto px-6 py-3 rounded-full bg-slate-100 hover:bg-slate-200 text-ocean-950 font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2"
-              >
-                <Share2 className="w-4 h-4 text-[#076DDF]" />
-                <span>{copiedShare ? 'Link Copied!' : 'Share Mission'}</span>
-              </button>
+            <div className="flex items-center gap-4 text-slate-600 font-medium">
+              <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4 text-[#076DDF]" /> {submittedMission.date}</span>
+              <span className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-[#076DDF]" /> {submittedMission.startTime}</span>
+              <span className="flex items-center gap-1.5"><Users className="w-4 h-4 text-[#19887F]" /> Max {submittedMission.maxCapacity}</span>
             </div>
           </div>
 
+          <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={handleCopyShare}
+              className="w-full sm:w-1/2 py-3.5 rounded-full bg-teal-50 hover:bg-teal-100 text-[#19887F] font-bold text-xs border border-[#92F1EC] transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              <Share2 className="w-4 h-4" />
+              <span>{copiedShare ? 'Link Copied!' : 'Share Event Link'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={onNavigateExplore}
+              className="w-full sm:w-1/2 py-3.5 rounded-full bg-[#076DDF] hover:bg-[#3C92FF] text-white font-extrabold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              <span>Explore Cleanups</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-[#DAF6F6] min-h-screen pt-28 pb-20">
+    <div className="bg-[#DAF6F6] min-h-screen pt-28 pb-16">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 animate-fadeIn">
-        
-        {/* Standardized Back Navigation */}
-        <div className="flex items-center justify-between">
-          <button
-            onClick={onNavigateExplore}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-ocean-950 font-bold text-xs border border-[#92F1EC] hover:bg-[#92F1EC]/30 shadow-sm transition-all"
-          >
-            <ArrowLeft className="w-4 h-4 text-[#19887F]" />
-            <span>Back to Cleanups</span>
-          </button>
+
+        {/* Back Link */}
+        <button
+          type="button"
+          onClick={onNavigateExplore}
+          className="inline-flex items-center gap-2 text-xs font-bold text-[#19887F] hover:text-[#071325] transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Explore Waterbodies</span>
+        </button>
+
+        {/* Title Block */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#92F1EC] shadow-md space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-[#92F1EC] text-[#19887F] text-xs font-black uppercase tracking-wider">
+            <Flag className="w-3.5 h-3.5 text-[#076DDF]" />
+            <span>Community Organizers</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-[#071325]">
+            Organize a Cleanup Mission
+          </h1>
+          <p className="text-xs sm:text-sm text-[#475569] font-medium leading-relaxed">
+            Lead action for your local lake, river, or coastline. Published missions appear instantly across the AquaRise network for nearby Guardians to join.
+          </p>
         </div>
 
-        {/* Form Container */}
-        <div className="bg-white p-6 sm:p-10 rounded-3xl border border-[#92F1EC] shadow-xl space-y-8">
-          
-          <div className="border-b border-[#35AEAC]/20 pb-6 space-y-2">
-            <span className="text-xs font-black tracking-widest text-[#19887F] uppercase bg-teal-50 px-3.5 py-1 rounded-full border border-teal-200 inline-block shadow-sm">
-              Community Action Engine
-            </span>
-            <h1 className="text-3xl sm:text-4xl font-black text-ocean-950">
-              Propose a <span className="text-[#19887F]">Cleanup Mission</span>
-            </h1>
-            <p className="text-slate-700 text-sm font-medium">
-              Mobilize local volunteers and organize a river, lake, or coastal cleanup action.
-            </p>
+        {/* Error Banner */}
+        {dateError && (
+          <div className="bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-2xl text-xs font-bold flex items-center gap-3 animate-fadeIn">
+            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+            <span>{dateError}</span>
           </div>
+        )}
 
-          {dateError && (
-            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2.5">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{dateError}</span>
-            </div>
-          )}
+        {/* Main Form */}
+        <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-6 sm:p-10 border border-[#92F1EC] shadow-xl space-y-8">
+          
+          {/* 1. Basic Info */}
+          <div className="space-y-6">
+            <h2 className="text-lg font-black text-[#071325] border-b border-teal-100 pb-3 flex items-center gap-2">
+              <Flag className="w-5 h-5 text-[#19887F]" />
+              <span>1. Event Overview</span>
+            </h2>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            
-            {/* Title & Waterbody */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-ocean-950 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   Mission Title <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   name="title"
                   required
-                  placeholder="e.g. Citarum Riverbank Community Sweep"
+                  placeholder="e.g. Mapocho River Spring Action"
                   value={formData.title}
                   onChange={handleChange}
-                  className="w-full bg-slate-50 border border-teal-200 rounded-xl px-4 py-2.5 text-sm text-ocean-950 focus:outline-none focus:border-[#076DDF] font-medium"
+                  className="w-full px-4 py-3 rounded-xl border border-teal-200 focus:outline-none focus:border-[#19887F] text-xs font-semibold"
                 />
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Target Waterbody <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="waterbodyName"
+                    required
+                    placeholder="e.g. Mapocho River"
+                    value={formData.waterbodyName}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 rounded-xl border border-teal-200 focus:outline-none focus:border-[#19887F] text-xs font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    City / Locality <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="city"
+                    required
+                    placeholder="e.g. Santiago"
+                    value={formData.city}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 rounded-xl border border-teal-200 focus:outline-none focus:border-[#19887F] text-xs font-semibold"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-xs font-bold text-ocean-950 uppercase tracking-wider mb-1">
-                  Target Waterbody <span className="text-rose-500">*</span>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Meeting Point / Detailed Access Location <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  name="waterbodyName"
-                  required
-                  placeholder="e.g. Citarum River Basin"
-                  value={formData.waterbodyName}
-                  onChange={handleChange}
-                  className="w-full bg-slate-50 border border-teal-200 rounded-xl px-4 py-2.5 text-sm text-ocean-950 focus:outline-none focus:border-[#076DDF] font-medium"
-                />
-              </div>
-            </div>
-
-            {/* Location & Meeting Point */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-ocean-950 uppercase tracking-wider mb-1">City / Region</label>
-                <input
-                  type="text"
-                  name="city"
-                  placeholder="e.g. West Java"
-                  value={formData.city}
-                  onChange={handleChange}
-                  className="w-full bg-slate-50 border border-teal-200 rounded-xl px-4 py-2.5 text-sm text-ocean-950 focus:outline-none focus:border-[#076DDF]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-ocean-950 uppercase tracking-wider mb-1">Country</label>
-                <input
-                  type="text"
-                  name="country"
-                  placeholder="e.g. Indonesia"
-                  value={formData.country}
-                  onChange={handleChange}
-                  className="w-full bg-slate-50 border border-teal-200 rounded-xl px-4 py-2.5 text-sm text-ocean-950 focus:outline-none focus:border-[#076DDF]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-ocean-950 uppercase tracking-wider mb-1">Meeting Point</label>
                 <input
                   type="text"
                   name="meetingLocation"
-                  placeholder="e.g. Bridge Park Entrance"
+                  required
+                  placeholder="e.g. Parque de las Esculturas Main Gate, Providencia"
                   value={formData.meetingLocation}
                   onChange={handleChange}
-                  className="w-full bg-slate-50 border border-teal-200 rounded-xl px-4 py-2.5 text-sm text-ocean-950 focus:outline-none focus:border-[#076DDF]"
+                  className="w-full px-4 py-3 rounded-xl border border-teal-200 focus:outline-none focus:border-[#19887F] text-xs font-semibold"
                 />
               </div>
             </div>
+          </div>
 
-            {/* Date, Start Time & Estimated Duration (Section 8) */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-2xl bg-[#DAF6F6]/40 border border-[#92F1EC]">
+          {/* 2. Date & Time */}
+          <div className="space-y-6">
+            <h2 className="text-lg font-black text-[#071325] border-b border-teal-100 pb-3 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-[#076DDF]" />
+              <span>2. Date & Schedule</span>
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-bold text-ocean-950 uppercase tracking-wider mb-1">
-                  Cleanup Date <span className="text-rose-500">*</span>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Event Date <span className="text-rose-500">*</span>
                 </label>
-                <div className="relative">
-                  <Calendar className="w-4 h-4 text-[#076DDF] absolute left-3 top-3" />
-                  <input
-                    type="date"
-                    name="date"
-                    min={todayStr}
-                    required
-                    value={formData.date}
-                    onChange={handleChange}
-                    className="w-full bg-white border border-teal-200 rounded-xl pl-10 pr-3 py-2.5 text-xs text-ocean-950 font-bold focus:outline-none focus:border-[#076DDF]"
-                  />
-                </div>
+                <input
+                  type="date"
+                  name="date"
+                  required
+                  min={todayStr}
+                  value={formData.date}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl border border-teal-200 focus:outline-none focus:border-[#19887F] text-xs font-semibold"
+                />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-ocean-950 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   Start Time <span className="text-rose-500">*</span>
                 </label>
-                <div className="relative">
-                  <Clock className="w-4 h-4 text-[#19887F] absolute left-3 top-3" />
-                  <input
-                    type="time"
-                    name="startTime"
-                    required
-                    value={formData.startTime}
-                    onChange={handleChange}
-                    className="w-full bg-white border border-teal-200 rounded-xl pl-10 pr-3 py-2.5 text-xs text-ocean-950 font-bold focus:outline-none focus:border-[#076DDF]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-ocean-950 uppercase tracking-wider mb-1">
-                  Estimated Duration
-                </label>
-                <select
-                  name="estimatedDuration"
-                  value={formData.estimatedDuration}
+                <input
+                  type="time"
+                  name="startTime"
+                  required
+                  value={formData.startTime}
                   onChange={handleChange}
-                  className="w-full bg-white border border-teal-200 rounded-xl px-3 py-2.5 text-xs text-ocean-950 font-bold focus:outline-none focus:border-[#076DDF]"
-                >
-                  <option value="1 hour">1 hour</option>
-                  <option value="2 hours">2 hours</option>
-                  <option value="3 hours">3 hours</option>
-                  <option value="4 hours">4 hours</option>
-                  <option value="Half Day (5+ hours)">Half Day (5+ hours)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Banner Photo Upload (Section 10) */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-teal-200 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-bold text-ocean-950 uppercase tracking-wider">
-                  Cleanup Banner Photo (Optional)
-                </label>
-                <span className="text-[11px] text-slate-500 font-medium">Max size: 5 MB</span>
+                  className="w-full px-4 py-3 rounded-xl border border-teal-200 focus:outline-none focus:border-[#19887F] text-xs font-semibold"
+                />
               </div>
 
-              <p className="text-xs text-slate-600 font-medium">
-                Add a photo of the cleanup location or waterbody.
-              </p>
-
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/jpeg,image/jpg,image/png,image/webp"
-                onChange={handleBannerSelect}
-                className="hidden"
-              />
-
-              {bannerPhoto ? (
-                <div className="space-y-3">
-                  <div className="relative rounded-2xl overflow-hidden border-2 border-[#19887F] max-h-56 bg-slate-100 shadow-sm">
-                    <img src={bannerPhoto} alt="Banner Preview" className="w-full h-full object-cover" />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-ocean-950 font-bold text-xs transition-colors"
-                    >
-                      Change Photo
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setBannerPhoto(null)}
-                      className="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs border border-rose-200 transition-colors"
-                    >
-                      Remove Photo
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full py-6 rounded-2xl border-2 border-dashed border-teal-300 hover:border-[#19887F] bg-white text-center space-y-2 transition-colors cursor-pointer"
-                >
-                  <Upload className="w-6 h-6 text-[#19887F] mx-auto" />
-                  <span className="text-xs font-bold text-[#19887F] block">Click to upload banner photo</span>
-                  <span className="text-[10px] text-slate-400 block font-medium">Supports JPG, JPEG, PNG, WEBP</span>
-                </button>
-              )}
-            </div>
-
-            {/* Description & Capacity */}
-            <div>
-              <label className="block text-xs font-bold text-ocean-950 uppercase tracking-wider mb-1">
-                Description & Impact Objectives
-              </label>
-              <textarea
-                name="description"
-                rows="4"
-                placeholder="Describe the cleanup goals, specific target areas, safety instructions, and what volunteers should expect."
-                value={formData.description}
-                onChange={handleChange}
-                className="w-full bg-slate-50 border border-teal-200 rounded-xl px-4 py-2.5 text-sm text-ocean-950 focus:outline-none focus:border-[#076DDF]"
-              ></textarea>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-ocean-950 uppercase tracking-wider mb-1">Volunteer Capacity</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Max Participant Capacity
+                </label>
                 <input
                   type="number"
                   name="capacity"
@@ -485,44 +409,79 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onNavi
                   max="500"
                   value={formData.capacity}
                   onChange={handleChange}
-                  className="w-full bg-slate-50 border border-teal-200 rounded-xl px-4 py-2.5 text-sm text-ocean-950 focus:outline-none focus:border-[#076DDF]"
+                  className="w-full px-4 py-3 rounded-xl border border-teal-200 focus:outline-none focus:border-[#19887F] text-xs font-semibold"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Description & Supplies */}
+          <div className="space-y-6">
+            <h2 className="text-lg font-black text-[#071325] border-b border-teal-100 pb-3 flex items-center gap-2">
+              <Users className="w-5 h-5 text-[#19887F]" />
+              <span>3. Details & Logistics</span>
+            </h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Event Description
+                </label>
+                <textarea
+                  name="description"
+                  rows="4"
+                  placeholder="Describe the cleanup goals, safety guidelines, and what volunteers should bring..."
+                  value={formData.description}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl border border-teal-200 focus:outline-none focus:border-[#19887F] text-xs font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-ocean-950 uppercase tracking-wider mb-1">Organizer / Leader Name</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Supplies Needed (Comma-separated)
+                </label>
                 <input
                   type="text"
-                  name="organizerName"
-                  value={formData.organizerName}
+                  name="suppliesNeeded"
+                  placeholder="Heavy gloves, trash bags, boots, water bottles"
+                  value={formData.suppliesNeeded}
                   onChange={handleChange}
-                  className="w-full bg-slate-50 border border-teal-200 rounded-xl px-4 py-2.5 text-sm text-ocean-950 focus:outline-none focus:border-[#076DDF]"
+                  className="w-full px-4 py-3 rounded-xl border border-teal-200 focus:outline-none focus:border-[#19887F] text-xs font-semibold"
                 />
               </div>
             </div>
+          </div>
 
-            {/* Submit CTA */}
-            <div className="pt-4 border-t border-[#92F1EC] flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={onNavigateExplore}
-                className="px-6 py-3 rounded-full bg-slate-100 hover:bg-slate-200 text-ocean-950 font-bold text-xs transition-all"
-              >
-                Cancel
-              </button>
+          {/* Submit Action */}
+          <div className="pt-4 border-t border-teal-100 flex flex-col sm:flex-row items-center justify-end gap-4">
+            <button
+              type="button"
+              onClick={onNavigateExplore}
+              className="w-full sm:w-auto px-6 py-3 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#076DDF] hover:bg-[#3C92FF] disabled:opacity-50 text-white font-black text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Publishing Mission...</span>
+                </>
+              ) : (
+                <>
+                  <Flag className="w-4 h-4" />
+                  <span>Publish Community Mission</span>
+                </>
+              )}
+            </button>
+          </div>
 
-              <button
-                type="submit"
-                className="px-8 py-3 rounded-full bg-[#076DDF] hover:bg-[#3C92FF] text-white font-extrabold text-xs shadow-md transition-all"
-              >
-                Create Cleanup Mission
-              </button>
-            </div>
-
-          </form>
-
-        </div>
-
+        </form>
       </div>
     </div>
   );
