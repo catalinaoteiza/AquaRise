@@ -42,13 +42,16 @@ import {
   leaveCommunityMission
 } from './services/communityMissionService.js';
 
+// Shared Supabase Pollution Reports Service (Stage 7C)
+import {
+  fetchPollutionReports,
+  createPollutionReport
+} from './services/pollutionReportService.js';
+
 // Storage & Utilities
 import {
-  getStoredReports,
-  saveStoredReport,
   getStoredParticipations,
   saveParticipationRecord,
-  removeParticipationRecord,
   getStoredCertificates,
   saveCertificateRecord,
   cleanDemoRecordsFromStorage
@@ -95,8 +98,11 @@ function AquaRiseApp() {
   const [evidenceTargetMission, setEvidenceTargetMission] = useState(null);
   const [leaveTargetMission, setLeaveTargetMission] = useState(null);
 
+  // Shared Supabase Pollution Reports (Stage 7C)
+  const [reports, setReports] = useState([]);
+  const [loadingReports, setLoadingReports] = useState(true);
+
   // Local Storage Synchronized State
-  const [reports, setReports] = useState(() => getStoredReports());
   const [participations, setParticipations] = useState(() => getStoredParticipations());
   const [certificates, setCertificates] = useState(() => getStoredCertificates());
 
@@ -104,6 +110,18 @@ function AquaRiseApp() {
   const [communityMissions, setCommunityMissions] = useState([]);
   const [joinedMissionIds, setJoinedMissionIds] = useState([]);
   const [loadingMissions, setLoadingMissions] = useState(true);
+
+  const loadPollutionReports = async () => {
+    setLoadingReports(true);
+    try {
+      const fetched = await fetchPollutionReports();
+      setReports(fetched);
+    } catch (err) {
+      console.error('[AquaRise App] Error fetching pollution reports:', err);
+    } finally {
+      setLoadingReports(false);
+    }
+  };
 
   const loadCommunityMissions = async () => {
     setLoadingMissions(true);
@@ -133,6 +151,7 @@ function AquaRiseApp() {
   useEffect(() => {
     cleanDemoRecordsFromStorage();
     loadCommunityMissions();
+    loadPollutionReports();
   }, []);
 
   useEffect(() => {
@@ -144,11 +163,14 @@ function AquaRiseApp() {
       setParticipations(getStoredParticipations());
       loadCommunityMissions();
       loadUserJoinedMissions();
+      loadPollutionReports();
     };
     window.addEventListener('aquarise_participation_changed', syncParticipations);
+    window.addEventListener('aquarise_report_created', syncParticipations);
     window.addEventListener('storage', syncParticipations);
     return () => {
       window.removeEventListener('aquarise_participation_changed', syncParticipations);
+      window.removeEventListener('aquarise_report_created', syncParticipations);
       window.removeEventListener('storage', syncParticipations);
     };
   }, [user]);
@@ -158,7 +180,10 @@ function AquaRiseApp() {
   };
 
   const handleOpenGuardian = () => setIsGuardianModalOpen(true);
-  const handleOpenReportModal = () => setIsReportModalOpen(true);
+  const handleOpenReportModal = () => {
+    setActiveTab('report');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleViewWaterbodyDetails = (waterbody) => {
     setSelectedWaterbody(waterbody);
@@ -247,11 +272,23 @@ function AquaRiseApp() {
     return { success: true };
   };
 
-  const handleReportSubmitted = (newReport) => {
-    saveStoredReport(newReport);
-    setReports(getStoredReports());
-    setIsReportModalOpen(false);
-    showToast('Pollution report filed successfully.', 'success');
+  const handleReportSubmitted = async (newReportData) => {
+    if (!user) {
+      showToast('Please sign in to file a pollution report.', 'info');
+      setIsAuthModalOpen(true);
+      return { error: 'Please sign in to file a pollution report.' };
+    }
+    const res = await createPollutionReport(newReportData);
+    if (res?.error) {
+      showToast(res.error, 'error');
+      return res;
+    }
+    if (res?.report) {
+      await loadPollutionReports();
+      showToast('Pollution report filed and published to the AquaRise community!', 'success');
+      return res;
+    }
+    return { error: 'Could not submit report.' };
   };
 
   const handleSaveProfile = async (updatedProfile) => {
@@ -369,7 +406,8 @@ function AquaRiseApp() {
             onProposeCleanup={(wb) => handleStartCreateCleanup(wb)}
             onReportPollution={(wb) => {
               setProposeWaterbody(wb);
-              setIsReportModalOpen(true);
+              setActiveTab('report');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           />
         );
@@ -415,10 +453,14 @@ function AquaRiseApp() {
       case 'report':
         return (
           <ReportPollutionView
+            user={user}
             profile={profile}
             waterbodies={MOCK_WATERBODIES}
             onSubmitReportSuccess={(newReport) => handleReportSubmitted(newReport)}
-            onNavigateExplore={() => setActiveTab('explore')}
+            onNavigateExplore={() => setActiveTab('community')}
+            onViewReport={(rep) => handleViewReportDetails(rep)}
+            onProposeCleanup={(rep) => handleStartCreateCleanup(rep)}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
           />
         );
 
@@ -585,13 +627,11 @@ function AquaRiseApp() {
       <ReportPollutionModal
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
-        onSubmitSuccess={(newReport) => handleReportSubmitted(newReport)}
         onNavigateReport={() => {
           setIsReportModalOpen(false);
           setActiveTab('report');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
-        profile={profile}
       />
 
       <RemoteSupportModal
