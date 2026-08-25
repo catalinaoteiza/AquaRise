@@ -1,7 +1,8 @@
 import React from 'react';
 import { MapPin, Calendar, AlertTriangle, ArrowRight, Flag, Info } from 'lucide-react';
 
-export default function ReportCard({ report, onViewReport, onProposeCleanup }) {
+export default function ReportCard({ report, onViewReport, onViewDetails, onProposeCleanup }) {
+  const handleView = onViewDetails || onViewReport;
   const getSeverityBadgeClass = (severity) => {
     switch (String(severity || '').toLowerCase()) {
       case 'critical':
@@ -99,7 +100,7 @@ export default function ReportCard({ report, onViewReport, onProposeCleanup }) {
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              if (onViewReport) onViewReport(report);
+              if (handleView) handleView(report);
             }}
             className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-ocean-950 text-xs font-bold border border-slate-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >

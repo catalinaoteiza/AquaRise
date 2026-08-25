@@ -72,8 +72,8 @@ export default function Footer({ onNavClick, onBecomeGuardian }) {
                 </button>
               </li>
               <li>
-                <button onClick={() => onNavClick('home')} className="hover:text-aqua-400 transition-colors">
-                  Remote Supply Support
+                <button onClick={() => onNavClick('cleanups')} className="hover:text-aqua-400 transition-colors">
+                  Join Cleanup Missions
                 </button>
               </li>
               <li>

@@ -3,6 +3,8 @@ import { Bookmark, Calendar, MapPin, ExternalLink, Compass, Trash2, CheckCircle2
 import { getParticipations, leaveOrRemoveCleanup, categorizeParticipations } from '../../services/participationService';
 
 export default function MyCleanupsView({
+  user,
+  onOpenAuth,
   onNavigateCleanups,
   onViewMission,
   onOpenEvidenceModal,
@@ -10,6 +12,31 @@ export default function MyCleanupsView({
   onToast
 }) {
   const [participations, setParticipations] = useState([]);
+
+  if (!user) {
+    return (
+      <div className="bg-[#DAF6F6] min-h-screen pt-32 pb-20 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl border border-[#92F1EC] p-8 shadow-xl text-center space-y-6 animate-fadeIn">
+          <div className="w-16 h-16 rounded-2xl bg-teal-50 border border-teal-200 text-[#19887F] mx-auto flex items-center justify-center shadow-md">
+            <Bookmark className="w-9 h-9" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black text-ocean-950">Join the AquaRise Network</h2>
+            <p className="text-xs text-slate-600 font-medium">
+              Sign in to view your joined community missions and saved cleanup opportunities.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onOpenAuth}
+            className="w-full py-3.5 rounded-full bg-[#076DDF] hover:bg-[#3C92FF] text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
+          >
+            Sign In / Join AquaRise
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const loadParticipations = () => {
     setParticipations(getParticipations());
@@ -41,7 +68,7 @@ export default function MyCleanupsView({
   const { upcoming, past } = categorizeParticipations(participations);
 
   return (
-    <div className="bg-[#DAF6F6] min-h-screen pt-24 pb-20">
+    <div className="bg-[#DAF6F6] min-h-screen pt-28 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 animate-fadeIn">
         
         {/* Header */}

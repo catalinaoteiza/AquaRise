@@ -16,10 +16,13 @@ export default function CommunityView({
   onViewMission,
   onProposeCleanup,
   onBecomeGuardian,
-  onOpenReportForm
+  onOpenReportForm,
+  onReportPollution
 }) {
   const [activeTab, setActiveTab] = useState('reports');
   const [selectedNetwork, setSelectedNetwork] = useState(null);
+
+  const handleReportAction = onReportPollution || onOpenReportForm;
 
   // Derive genuine data-driven regional networks from stored profiles, missions, and reports
   const regionalNetworks = useMemo(() => {
@@ -27,12 +30,12 @@ export default function CommunityView({
   }, [profile, missions, reports]);
 
   return (
-    <div className="bg-[#DAF6F6] min-h-screen pt-28 pb-20">
+    <div className="bg-[#DAF6F6] min-h-screen pt-28 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 animate-fadeIn">
         
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#19887F]/10 border border-[#19887F]/30 text-[#19887F] text-xs font-bold uppercase tracking-wider">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white text-[#19887F] text-xs font-black uppercase tracking-wider shadow-sm border border-[#92F1EC]">
             <Users className="w-4 h-4 text-[#19887F]" />
             <span>Global Guardian Network & Community Reports</span>
           </div>
@@ -101,8 +104,9 @@ export default function CommunityView({
               </div>
 
               <button
-                onClick={onOpenReportForm}
-                className="px-5 py-2.5 rounded-full bg-[#076DDF] hover:bg-[#3C92FF] text-white text-xs font-bold shrink-0 shadow-md transition-all"
+                type="button"
+                onClick={handleReportAction}
+                className="px-5 py-2.5 rounded-full bg-[#076DDF] hover:bg-[#3C92FF] text-white text-xs font-bold shrink-0 shadow-md transition-all cursor-pointer"
               >
                 + File a Pollution Report
               </button>
@@ -114,6 +118,7 @@ export default function CommunityView({
                   <ReportCard
                     key={report.id}
                     report={report}
+                    onViewReport={onViewReport}
                     onViewDetails={onViewReport}
                     onProposeCleanup={onProposeCleanup}
                   />
@@ -128,8 +133,8 @@ export default function CommunityView({
                 </p>
                 <button
                   type="button"
-                  onClick={onOpenReportForm}
-                  className="px-5 py-2.5 rounded-full bg-[#076DDF] hover:bg-[#3C92FF] text-white font-bold text-xs shadow-md transition-all"
+                  onClick={handleReportAction}
+                  className="px-5 py-2.5 rounded-full bg-[#076DDF] hover:bg-[#3C92FF] text-white font-bold text-xs shadow-md transition-all cursor-pointer"
                 >
                   File a Pollution Report
                 </button>

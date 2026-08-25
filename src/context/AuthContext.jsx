@@ -9,6 +9,7 @@ import {
   fetchUserProfile,
   updateUserProfile,
   updateGuardianProfile,
+  leaveGuardianProgram,
   normalizeProfile,
   GUEST_PROFILE
 } from '../services/authService.js';
@@ -215,6 +216,17 @@ export function AuthProvider({ children }) {
     return result;
   };
 
+  const handleLeaveGuardianProgram = async () => {
+    if (!user || !user.id) {
+      return { profile: null, error: 'You must be signed in to your AquaRise account to leave the Guardian program.' };
+    }
+    const result = await leaveGuardianProgram(user.id, user);
+    if (result.profile && !result.error) {
+      setProfile(result.profile);
+    }
+    return result;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -230,7 +242,8 @@ export function AuthProvider({ children }) {
         updatePassword: handleUpdatePassword,
         refreshProfile: handleRefreshProfile,
         updateProfile: handleUpdateProfile,
-        updateGuardianStatus: handleUpdateGuardianStatus
+        updateGuardianStatus: handleUpdateGuardianStatus,
+        leaveGuardianProgram: handleLeaveGuardianProgram
       }}
     >
       {children}

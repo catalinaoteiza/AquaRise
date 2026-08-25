@@ -1,108 +1,86 @@
 import React from 'react';
-import { Search, Zap, HeartHandshake, Award, ArrowRight } from 'lucide-react';
+import { Search, Users, Zap, Award, ArrowRight } from 'lucide-react';
 
-export default function HowItWorks({ onBecomeGuardian }) {
+export default function HowItWorks() {
   const steps = [
     {
-      num: '01',
       title: 'Discover',
-      description: 'Find polluted rivers, lakes, beaches, ponds, and other waterbodies that need urgent community attention around the globe.',
+      sentence: 'Find polluted waters and legitimate cleanup opportunities.',
       icon: Search,
-      iconColor: 'text-[#076DDF]',
-      bgIcon: 'bg-[#EFF6FF]',
+      color: 'text-[#076DDF]',
+      bg: 'bg-blue-50'
     },
     {
-      num: '02',
+      title: 'Join or Organize',
+      sentence: 'Join an existing effort or create a community cleanup where none exists.',
+      icon: Users,
+      color: 'text-[#19887F]',
+      bg: 'bg-teal-50'
+    },
+    {
       title: 'Take Action',
-      description: 'Join an existing cleanup event or collaborate with AquaRise to organize a brand-new cleanup mission in your local community.',
+      sentence: 'Participate in cleanup work, pollution reporting, or community support.',
       icon: Zap,
-      iconColor: 'text-[#19887F]',
-      bgIcon: 'bg-[#E6FCFA]',
+      color: 'text-[#35AEAC]',
+      bg: 'bg-emerald-50'
     },
     {
-      num: '03',
-      title: 'Make an Impact',
-      description: 'Clean the waterbody, volunteer your time, safely remove waste, or support Guardians remotely with vital supplies like gloves & trash bags.',
-      icon: HeartHandshake,
-      iconColor: 'text-[#35AEAC]',
-      bgIcon: 'bg-[#F0FDFD]',
-    },
-    {
-      num: '04',
-      title: 'Grow Your Impact',
-      description: 'Build your AquaRise Guardian profile, earn impact points, track waste collected, and receive Certificates of Appreciation for completed work.',
+      title: 'Track Impact',
+      sentence: 'Build a verified record of contributions and environmental impact.',
       icon: Award,
-      iconColor: 'text-[#3C92FF]',
-      bgIcon: 'bg-[#EFF6FF]',
-    },
+      color: 'text-[#3C92FF]',
+      bg: 'bg-sky-50'
+    }
   ];
 
   return (
-    <section className="py-20 bg-[#E6FCFA] relative border-y border-[#92F1EC]/60">
+    <section className="py-12 bg-[#E6FCFA] border-y border-[#92F1EC]/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
-          <span className="text-xs font-black tracking-widest text-[#19887F] uppercase bg-white px-3.5 py-1 rounded-full border border-[#92F1EC] shadow-sm inline-block">
-            Simple 4-Step Process
+        <div className="text-center max-w-xl mx-auto space-y-2 mb-10">
+          <span className="text-[11px] font-black tracking-widest text-[#19887F] uppercase bg-white px-3 py-1 rounded-full border border-[#92F1EC] inline-block shadow-sm">
+            Simple Process
           </span>
-          <h2 className="text-3xl sm:text-4xl font-black text-[#071325]">
+          <h2 className="text-2xl sm:text-3xl font-black text-[#071325]">
             How <span className="text-[#19887F]">AquaRise Works</span>
           </h2>
-          <p className="text-[#334155] text-base sm:text-lg font-medium">
-            Empowering individuals from reporting pollution to celebrating tangible environmental restoration.
-          </p>
         </div>
 
-        {/* 4 Steps Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative">
+        {/* Compact Horizontal Flow */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative">
           {steps.map((step, idx) => {
             const Icon = step.icon;
             return (
               <div
-                key={step.num}
-                className="card-light-surface p-8 rounded-3xl relative flex flex-col justify-between bg-white border border-[#92F1EC] shadow-sm group"
+                key={idx}
+                className="bg-white rounded-2xl p-5 border border-[#92F1EC] shadow-sm flex flex-col justify-between space-y-3 relative group"
               >
-                {/* Step Header */}
-                <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <div className={`w-14 h-14 rounded-2xl ${step.bgIcon} border border-[#92F1EC] flex items-center justify-center font-bold shadow-sm group-hover:scale-110 transition-transform duration-300`}>
-                      <Icon className={`w-7 h-7 ${step.iconColor}`} />
-                    </div>
-                    <span className="text-3xl font-black text-[#92F1EC] group-hover:text-[#19887F] transition-colors">
-                      {step.num}
-                    </span>
+                <div className="flex items-center justify-between">
+                  <div className={`w-10 h-10 rounded-xl ${step.bg} border border-teal-100 flex items-center justify-center font-bold ${step.color} shrink-0`}>
+                    <Icon className="w-5 h-5" />
                   </div>
+                  <span className="text-xs font-black text-slate-300 group-hover:text-[#19887F] transition-colors">
+                    0{idx + 1}
+                  </span>
+                </div>
 
-                  <h3 className="text-xl font-black text-[#071325] mb-3 group-hover:text-[#076DDF] transition-colors">
-                    {step.title}
-                  </h3>
-
-                  <p className="text-[#475569] text-sm leading-relaxed font-normal">
-                    {step.description}
+                <div className="space-y-1">
+                  <h3 className="text-base font-black text-[#071325]">{step.title}</h3>
+                  <p className="text-xs text-[#475569] leading-relaxed font-normal">
+                    {step.sentence}
                   </p>
                 </div>
 
-                {/* Subtle Step Arrow Indicator */}
+                {/* Arrow connector for desktop */}
                 {idx < steps.length - 1 && (
-                  <div className="hidden lg:block absolute -right-3 top-1/2 -translate-y-1/2 z-20 text-[#35AEAC]">
-                    <ArrowRight className="w-6 h-6" />
+                  <div className="hidden lg:block absolute -right-3 top-1/2 -translate-y-1/2 z-10 text-[#35AEAC]/50">
+                    <ArrowRight className="w-5 h-5" />
                   </div>
                 )}
               </div>
             );
           })}
-        </div>
-
-        {/* CTA banner under steps */}
-        <div className="mt-12 text-center">
-          <button
-            onClick={onBecomeGuardian}
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full btn-primary-ocean text-sm font-extrabold shadow-md hover:scale-105 transition-all"
-          >
-            <span>Start Taking Action Today</span>
-            <ArrowRight className="w-4 h-4 text-white" />
-          </button>
         </div>
 
       </div>

@@ -26,7 +26,7 @@ export default function VerifyCertificateView({ initialCertId = '', onViewCertif
   };
 
   return (
-    <div className="bg-[#DAF6F6] min-h-screen pt-28 pb-20">
+    <div className="bg-[#DAF6F6] min-h-screen pt-28 pb-16">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 animate-fadeIn">
         
         {/* Standardized AquaRise Back Button */}
@@ -42,7 +42,7 @@ export default function VerifyCertificateView({ initialCertId = '', onViewCertif
 
         {/* View Header */}
         <div className="text-center max-w-2xl mx-auto space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#19887F]/10 border border-[#19887F]/30 text-[#19887F] text-xs font-bold uppercase tracking-wider">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white text-[#19887F] text-xs font-black uppercase tracking-wider shadow-sm border border-[#92F1EC]">
             <ShieldCheck className="w-4 h-4 text-[#19887F]" />
             <span>AquaRise Certificate Verification Portal</span>
           </div>

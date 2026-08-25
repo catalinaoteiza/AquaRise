@@ -94,7 +94,7 @@ export default function MyImpactView({
   };
 
   return (
-    <div className="bg-[#DAF6F6] min-h-screen pt-28 pb-20">
+    <div className="bg-[#DAF6F6] min-h-screen pt-28 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 animate-fadeIn">
         
         {/* 1. Profile Header */}

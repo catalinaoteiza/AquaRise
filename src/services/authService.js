@@ -383,3 +383,42 @@ export async function updateGuardianProfile(userId, guardianData, authUser = nul
 
   return await updateUserProfile(userId, updates, authUser);
 }
+
+/**
+ * Leave Guardian Program on canonical user profile
+ * Updates public.profiles: sets is_guardian = false, guardian_role = null.
+ * Preserves user profile row, historical participation, hours, certificates, and reports.
+ */
+export async function leaveGuardianProgram(userId, authUser = null) {
+  if (!userId || userId === 'guest-user' || userId === 'local-user' || userId === 'guardian-user') {
+    return { profile: null, error: 'You must be signed in to your AquaRise account to leave the Guardian program.' };
+  }
+
+  if (!isSupabaseConfigured) {
+    return { profile: null, error: 'Supabase environment is not configured.' };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({
+        is_guardian: false,
+        guardian_role: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[AquaRise Guardian] Leave program update failed:', error.message);
+      return { profile: null, error: `We couldn't update your Guardian status. Please try again.` };
+    }
+
+    const updatedProfile = normalizeProfile(authUser || { id: userId }, data);
+    return { profile: updatedProfile, dbRow: data, error: null };
+  } catch (err) {
+    console.error('[AquaRise Guardian] Leave program update failed with exception:', err);
+    return { profile: null, error: `We couldn't update your Guardian status. Please try again.` };
+  }
+}

@@ -58,7 +58,7 @@ import { MOCK_IMPACT_STATS } from './data/mockImpactData';
 import { MOCK_SUPPLIES } from './data/mockSupplies';
 
 function AquaRiseApp() {
-  const { user, profile, loading, signOut, updateProfile, updateGuardianStatus, isPasswordRecovery } = useAuth();
+  const { user, profile, loading, signOut, updateProfile, updateGuardianStatus, leaveGuardianProgram, isPasswordRecovery } = useAuth();
 
   const [activeTab, setActiveTab] = useState('home');
   const [toastInfo, setToastInfo] = useState({ message: '', type: 'success' });
@@ -304,6 +304,15 @@ function AquaRiseApp() {
     return res;
   };
 
+  const handleLeaveGuardianProgram = async () => {
+    const res = await leaveGuardianProgram();
+    if (res?.error) {
+      return res;
+    }
+    showToast('You have left the Guardian Program. Your past impact history remains intact.', 'info');
+    return res;
+  };
+
   const handleEvidenceSubmitted = (evidenceData) => {
     saveParticipationRecord(evidenceData);
     setParticipations(getStoredParticipations());
@@ -374,15 +383,10 @@ function AquaRiseApp() {
       case 'home':
         return (
           <HomeView
-            stats={MOCK_IMPACT_STATS}
-            impactStats={MOCK_IMPACT_STATS}
-            waterbodies={MOCK_WATERBODIES}
-            supplies={MOCK_SUPPLIES}
-            onExploreCleanups={() => setActiveTab('explore')}
+            profile={profile}
+            onExploreCleanups={() => setActiveTab('cleanups')}
             onBecomeGuardian={handleOpenGuardian}
-            onViewMission={handleViewWaterbodyDetails}
-            onSponsorSupply={(sup) => setSelectedSupply(sup)}
-            onReportPollution={() => setActiveTab('report')}
+            onReportPollution={handleOpenReportModal}
             onProposeCleanup={(wb) => handleStartCreateCleanup(wb)}
           />
         );
@@ -431,6 +435,8 @@ function AquaRiseApp() {
       case 'my-cleanups':
         return (
           <MyCleanupsView
+            user={user}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
             missions={missions}
             participations={participations}
             onViewMission={handleViewMissionDetails}
@@ -477,6 +483,10 @@ function AquaRiseApp() {
             onViewReport={handleViewReportDetails}
             onProposeCleanup={(rep) => handleStartCreateCleanup(rep)}
             onViewMission={handleViewMissionDetails}
+            onOpenReportForm={() => {
+              setActiveTab('report');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             onReportPollution={() => {
               setActiveTab('report');
               window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -525,15 +535,10 @@ function AquaRiseApp() {
       default:
         return (
           <HomeView
-            stats={MOCK_IMPACT_STATS}
-            impactStats={MOCK_IMPACT_STATS}
-            waterbodies={MOCK_WATERBODIES}
-            supplies={MOCK_SUPPLIES}
-            onExploreCleanups={() => setActiveTab('explore')}
+            profile={profile}
+            onExploreCleanups={() => setActiveTab('cleanups')}
             onBecomeGuardian={handleOpenGuardian}
-            onViewMission={handleViewWaterbodyDetails}
-            onSponsorSupply={(sup) => setSelectedSupply(sup)}
-            onReportPollution={() => setActiveTab('report')}
+            onReportPollution={handleOpenReportModal}
             onProposeCleanup={(wb) => handleStartCreateCleanup(wb)}
           />
         );
@@ -551,6 +556,7 @@ function AquaRiseApp() {
         user={user}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onSignOut={() => signOut()}
+        onOpenEditProfile={() => setIsEditProfileOpen(true)}
       />
 
       <main className="flex-grow">
@@ -584,6 +590,7 @@ function AquaRiseApp() {
         profile={profile}
         onOpenEditProfile={() => setIsEditProfileOpen(true)}
         onGuardianJoined={(data) => handleGuardianJoined(data)}
+        onLeaveGuardianProgram={handleLeaveGuardianProgram}
       />
 
       <MissionDetailModal
@@ -598,6 +605,11 @@ function AquaRiseApp() {
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
         onSubmitSuccess={handleReportSubmitted}
+        onNavigateReport={() => {
+          setActiveTab('report');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        profile={profile}
       />
 
       <RemoteSupportModal
