@@ -90,7 +90,11 @@ export default function CertificateDetailView({ certificate, onBack, onVerifyLin
           {/* Certificate Header */}
           <div className="text-center space-y-3 border-b border-teal-200 pb-6">
             <div className="flex justify-center">
-              <Logo variant="light" size="md" />
+              <img
+                src="/aquarise-logo.png"
+                alt="AquaRise"
+                className="certificate-logo h-14 sm:h-16 w-auto max-w-[100px] object-contain mx-auto block"
+              />
             </div>
 
             <span className="text-xs font-black uppercase tracking-wider text-[#19887F] block">
