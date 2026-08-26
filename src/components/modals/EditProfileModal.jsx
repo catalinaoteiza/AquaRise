@@ -59,20 +59,22 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
   });
 
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     if (profile) {
       setFormData({
-        name: profile.name || '',
+        name: profile.fullName || profile.displayName || profile.name || '',
         country: profile.country || '',
         city: profile.city || '',
         region: profile.region || '',
-        school: profile.school || '',
+        school: profile.schoolOrganization || profile.school || '',
         major: profile.major || '',
         bio: profile.bio || '',
         avatarUrl: profile.avatarUrl || profile.avatar || ''
       });
       setErrorMessage('');
+      setSuccessMessage('');
     }
   }, [profile, isOpen]);
 
@@ -83,6 +85,7 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
     if (!file) return;
 
     setErrorMessage('');
+    setSuccessMessage('');
 
     // Format Validation
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -114,27 +117,31 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
+    setSuccessMessage('');
 
     if (!profile?.id) {
-      setErrorMessage('You must be signed in to your AquaRise account to update your profile.');
+      setErrorMessage('Profile update failed: You must be signed in to your AquaRise account to update your profile.');
       return;
     }
 
     const trimmedName = formData.name.trim();
 
     if (!trimmedName) {
-      setErrorMessage('Display name cannot be empty.');
+      setErrorMessage('Profile update failed: Display name cannot be empty.');
       return;
     }
 
     const updatedProfile = {
       ...profile,
       name: trimmedName,
+      fullName: trimmedName,
+      displayName: trimmedName,
       country: formData.country.trim(),
       city: formData.city.trim(),
       region: formData.region.trim(),
       location: [formData.city.trim(), formData.region.trim(), formData.country.trim()].filter(Boolean).join(', ') || profile?.location || '',
       school: formData.school.trim(),
+      schoolOrganization: formData.school.trim(),
       major: formData.major.trim(),
       bio: formData.bio.trim(),
       avatarUrl: formData.avatarUrl,
@@ -144,12 +151,19 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
     try {
       const res = await onSaveProfile(updatedProfile);
       if (res?.error) {
-        setErrorMessage(res.error);
+        setErrorMessage(`Profile update failed: ${res.error}`);
+        setSuccessMessage('');
         return;
       }
-      onClose();
+      setSuccessMessage('Profile update sent successfully');
+      setErrorMessage('');
+      setTimeout(() => {
+        onClose();
+        setSuccessMessage('');
+      }, 1500);
     } catch (err) {
-      setErrorMessage("We couldn't save your profile changes. Please try again.");
+      setErrorMessage(`Profile update failed: ${err?.message || "We couldn't save your profile changes. Please try again."}`);
+      setSuccessMessage('');
     }
   };
 
@@ -176,17 +190,25 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
           </div>
         </div>
 
-        {/* Validation Error Alert */}
+        {/* Diagnostic Success Banner */}
+        {successMessage && (
+          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+            <span>{successMessage}</span>
+          </div>
+        )}
+
+        {/* Diagnostic Error Banner */}
         {errorMessage && (
           <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
             <span>{errorMessage}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           
-          {/* Profile Photo Upload Control (Requirement #2, #3, #6) */}
+          {/* Profile Photo Upload Control */}
           <div className="p-4 rounded-2xl bg-slate-50 border border-teal-200 space-y-3">
             <label className="block text-xs font-bold text-ocean-950 uppercase tracking-wider">
               Profile Photo
@@ -315,7 +337,7 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
           <div className="pt-2">
             <button
               type="submit"
-              className="w-full py-3.5 rounded-full bg-[#076DDF] hover:bg-[#3C92FF] text-white font-extrabold text-sm shadow-md transition-all"
+              className="w-full py-3.5 rounded-full bg-[#076DDF] hover:bg-[#3C92FF] text-white font-extrabold text-sm shadow-md transition-all cursor-pointer"
             >
               Save Profile Changes
             </button>

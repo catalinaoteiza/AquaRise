@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Award, Shield, CheckCircle2, Clock, Trash2, Download, ExternalLink, Sparkles, Star, Edit3, Share2, PlusCircle, AlertTriangle, Heart, Flag, Info, Users, Compass, FileCheck, ShieldAlert, FileText, HelpCircle, Eye } from 'lucide-react';
+import { Award, Shield, CheckCircle2, Clock, Trash2, Download, ExternalLink, Sparkles, Star, Edit3, Share2, PlusCircle, AlertTriangle, Heart, Flag, Info, Users, Compass, FileCheck, ShieldAlert, FileText, HelpCircle, Eye, GraduationCap, BookOpen } from 'lucide-react';
 import { calculateGuardianPoints, getGuardianLevel, evaluateAchievements } from '../../utils/points';
 import { isEligibleForCertificate } from '../../utils/certificate';
 import { canSubmitCompletionEvidence } from '../../utils/cleanupUtils.js';
@@ -136,6 +136,27 @@ export default function MyImpactView({
                     Joined {profile?.joinedDate || '2026'} • {profile?.location || 'Global'}
                   </span>
                 </div>
+
+                {profile?.bio && (
+                  <p className="text-xs text-slate-600 font-medium mt-2 max-w-2xl">{profile.bio}</p>
+                )}
+
+                {(profile?.schoolOrganization || profile?.school || profile?.major) && (
+                  <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-slate-500 font-medium">
+                    {(profile?.schoolOrganization || profile?.school) && (
+                      <span className="flex items-center gap-1 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                        <GraduationCap className="w-3.5 h-3.5 text-[#19887F]" />
+                        {profile.schoolOrganization || profile.school}
+                      </span>
+                    )}
+                    {profile?.major && (
+                      <span className="flex items-center gap-1 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                        <BookOpen className="w-3.5 h-3.5 text-[#076DDF]" />
+                        {profile.major}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

@@ -15,6 +15,7 @@ export const GUEST_PROFILE = {
   country: '',
   location: '',
   school: '',
+  schoolOrganization: '',
   major: '',
   primaryWaterbody: 'Local Waters',
   guardianPrimaryWaterbody: 'Local Waters',
@@ -45,7 +46,8 @@ export function normalizeProfile(user, dbProfile = null) {
   const id = user.id;
   const email = user.email || dbProfile?.email || '';
 
-  const name =
+  // Canonical name source of truth is dbProfile.full_name
+  const primaryName =
     dbProfile?.full_name ||
     dbProfile?.display_name ||
     meta.full_name ||
@@ -64,21 +66,34 @@ export function normalizeProfile(user, dbProfile = null) {
   const country = dbProfile?.country || '';
   const location = [city, region, country].filter(Boolean).join(', ') || city || '';
 
+  const bio = (dbProfile?.bio !== undefined && dbProfile?.bio !== null)
+    ? dbProfile.bio
+    : 'Dedicated to protecting global waterbodies and participating in local cleanup efforts.';
+
+  const schoolVal = (dbProfile?.school_organization !== undefined && dbProfile?.school_organization !== null)
+    ? dbProfile.school_organization
+    : (dbProfile?.school || '');
+
+  const majorVal = (dbProfile?.major !== undefined && dbProfile?.major !== null)
+    ? dbProfile.major
+    : '';
+
   return {
     id,
     email,
-    name,
-    fullName: name,
-    displayName: dbProfile?.display_name || name,
+    name: primaryName,
+    fullName: primaryName,
+    displayName: primaryName,
     city,
     region,
     country,
     location,
-    school: dbProfile?.school || '',
-    major: dbProfile?.major || '',
+    school: schoolVal,
+    schoolOrganization: schoolVal,
+    major: majorVal,
     primaryWaterbody,
     guardianPrimaryWaterbody: primaryWaterbody,
-    bio: dbProfile?.bio || 'Dedicated to protecting global waterbodies and participating in local cleanup efforts.',
+    bio,
     avatarUrl: dbProfile?.avatar_url || meta.avatar_url || '',
     avatar: dbProfile?.avatar_url || meta.avatar_url || '',
     isGuardian,
@@ -99,53 +114,64 @@ export async function signUpUser({ fullName, email, password }) {
     return { error: 'Supabase environment is not configured. Check VITE_SUPABASE_URL.' };
   }
 
-  if (!fullName || !fullName.trim()) return { error: 'Full name is required.' };
-  if (!email || !email.includes('@')) return { error: 'Please enter a valid email address.' };
-  if (!password || password.length < 6) return { error: 'Password must be at least 6 characters.' };
-
   try {
+    const redirectUrl = typeof window !== 'undefined'
+      ? window.location.origin
+      : 'http://localhost:3000';
+
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
+        emailRedirectTo: redirectUrl,
         data: {
           full_name: fullName.trim(),
-          display_name: fullName.trim(),
-          name: fullName.trim()
+          display_name: fullName.trim()
         }
       }
     });
 
     if (error) {
-      if (error.message.includes('User already registered')) {
-        return { error: 'An account with this email address already exists. Please sign in instead.' };
+      if (error.message.includes('already registered')) {
+        return { error: 'An account with this email address already exists. Please sign in.' };
       }
       return { error: error.message };
     }
 
-    const requiresConfirmation = !data.session && data.user && !data.user.confirmed_at;
+    if (!data.user) {
+      return { error: 'Sign up failed. Please try again.' };
+    }
+
+    // Explicitly create initial profile row in public.profiles
+    const initialProfileData = {
+      id: data.user.id,
+      full_name: fullName.trim(),
+      display_name: fullName.trim(),
+      is_guardian: false
+    };
+
+    await supabase.from('profiles').upsert(initialProfileData, { onConflict: 'id' });
+
+    const profile = normalizeProfile(data.user, initialProfileData);
 
     return {
-      user: data.session ? data.user : null,
-      session: data.session || null,
-      profile: data.session ? normalizeProfile(data.user, null) : GUEST_PROFILE,
-      requiresConfirmation,
+      user: data.user,
+      session: data.session,
+      profile,
       error: null
     };
   } catch (err) {
-    return { error: 'An unexpected error occurred during signup.' };
+    return { error: 'An unexpected error occurred during sign up.' };
   }
 }
 
 /**
- * Sign in an existing user via Supabase Auth
+ * Sign in existing user via Supabase Auth
  */
 export async function signInUser({ email, password }) {
   if (!isSupabaseConfigured) {
     return { error: 'Supabase environment is not configured.' };
   }
-
-  if (!email || !password) return { error: 'Email and password are required.' };
 
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -173,7 +199,6 @@ export async function signInUser({ email, password }) {
 
 /**
  * Request password recovery email via Supabase Auth.
- * Uses query parameter ?reset-password=1 to avoid URL hash collision with #access_token fragment.
  */
 export async function requestPasswordReset(email) {
   if (!isSupabaseConfigured) {
@@ -205,7 +230,6 @@ export async function requestPasswordReset(email) {
 
 /**
  * Update authenticated user password in Supabase Auth.
- * Verifies active session exists before attempting update.
  */
 export async function updateUserPassword(newPassword) {
   if (!isSupabaseConfigured) {
@@ -278,81 +302,98 @@ export async function fetchUserProfile(userId, authUser = null) {
 }
 
 /**
- * Update authenticated user profile in Supabase profiles table (Requirement #7).
- * Targets active Supabase auth user UUID (`user.id`).
+ * Update authenticated user profile in Supabase profiles table.
+ * Targets active Supabase auth user UUID (`user.id`). Uses upsert to guarantee resilience.
  */
 export async function updateUserProfile(userId, profileUpdates, authUser = null) {
   if (!userId || userId === 'guest-user' || userId === 'local-user' || userId === 'guardian-user') {
     return { profile: null, error: 'You must be signed in to your AquaRise account to update your profile.' };
   }
 
-  console.log('[AquaRise Guardian] Submission started for user:', userId);
-
   const dbUpdates = {};
 
-  if (profileUpdates.name || profileUpdates.fullName) {
-    dbUpdates.full_name = (profileUpdates.fullName || profileUpdates.name).trim();
-    dbUpdates.display_name = (profileUpdates.displayName || profileUpdates.name).trim();
+  if (profileUpdates.name || profileUpdates.fullName || profileUpdates.displayName) {
+    const val = (profileUpdates.fullName || profileUpdates.displayName || profileUpdates.name).trim();
+    dbUpdates.full_name = val;
+    dbUpdates.display_name = val;
   }
 
-  if (profileUpdates.city !== undefined) dbUpdates.city = profileUpdates.city.trim();
-  if (profileUpdates.region !== undefined) dbUpdates.region = profileUpdates.region.trim();
-  if (profileUpdates.country !== undefined) dbUpdates.country = profileUpdates.country.trim();
+  if (profileUpdates.city !== undefined) dbUpdates.city = String(profileUpdates.city).trim();
+  if (profileUpdates.region !== undefined) dbUpdates.region = String(profileUpdates.region).trim();
+  if (profileUpdates.country !== undefined) dbUpdates.country = String(profileUpdates.country).trim();
 
   if (profileUpdates.primaryWaterbody || profileUpdates.guardianPrimaryWaterbody) {
-    dbUpdates.primary_waterbody = (profileUpdates.primaryWaterbody || profileUpdates.guardianPrimaryWaterbody).trim();
+    dbUpdates.primary_waterbody = String(profileUpdates.primaryWaterbody || profileUpdates.guardianPrimaryWaterbody).trim();
   }
 
-  if (profileUpdates.bio !== undefined) dbUpdates.bio = profileUpdates.bio.trim();
+  if (profileUpdates.bio !== undefined) dbUpdates.bio = String(profileUpdates.bio).trim();
   if (profileUpdates.avatarUrl || profileUpdates.avatar) {
     dbUpdates.avatar_url = profileUpdates.avatarUrl || profileUpdates.avatar;
   }
 
-  // Guardian field mapping
+  if (profileUpdates.schoolOrganization !== undefined || profileUpdates.school !== undefined) {
+    const schoolVal = profileUpdates.schoolOrganization !== undefined ? profileUpdates.schoolOrganization : profileUpdates.school;
+    dbUpdates.school_organization = String(schoolVal || '').trim();
+  }
+
+  if (profileUpdates.major !== undefined) {
+    dbUpdates.major = String(profileUpdates.major || '').trim();
+  }
+
+  // Guardian field mapping (preserve existing values if omitted)
   if (typeof profileUpdates.isGuardian === 'boolean') {
     dbUpdates.is_guardian = profileUpdates.isGuardian;
   }
-  if (profileUpdates.guardianRole) {
+  if (profileUpdates.guardianRole !== undefined) {
     dbUpdates.guardian_role = profileUpdates.guardianRole;
   }
-  if (profileUpdates.guardianJoinedAt) {
+  if (profileUpdates.guardianJoinedAt !== undefined) {
     dbUpdates.guardian_joined_at = profileUpdates.guardianJoinedAt;
   }
 
   // Clean undefined properties
   Object.keys(dbUpdates).forEach((key) => dbUpdates[key] === undefined && delete dbUpdates[key]);
 
+  // Diagnostic Payload Logging
+  console.log('EDIT PROFILE PAYLOAD:', {
+    full_name: dbUpdates.full_name,
+    school_organization: dbUpdates.school_organization,
+    major: dbUpdates.major,
+    city: dbUpdates.city,
+    country: dbUpdates.country,
+    bio: dbUpdates.bio
+  });
+
   if (!isSupabaseConfigured) {
-    console.error('[AquaRise Guardian] Supabase update failed: Supabase environment is not configured.');
+    console.error('EDIT PROFILE ERROR: Supabase environment is not configured.');
     return { profile: null, error: 'Supabase environment is not configured.' };
   }
 
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .update(dbUpdates)
-      .eq('id', userId)
+      .upsert({ id: userId, ...dbUpdates }, { onConflict: 'id' })
       .select()
       .single();
 
     if (error) {
-      console.error('[AquaRise Guardian] Supabase update failed:', error.message);
-      return { profile: null, error: `We couldn't update your Guardian profile. Please try again.` };
+      console.error('EDIT PROFILE ERROR:', error.message);
+      return { profile: null, error: error.message || `We couldn't update your profile. Please try again.` };
     }
 
     if (!data) {
-      console.error('[AquaRise Guardian] Supabase update failed: No data returned.');
-      return { profile: null, error: `We couldn't update your Guardian profile. Please try again.` };
+      console.error('EDIT PROFILE ERROR: Supabase update returned no row.');
+      return { profile: null, error: `We couldn't update your profile. Please try again.` };
     }
 
-    console.log('[AquaRise Guardian] Supabase update successful for row ID:', data.id);
+    console.log('EDIT PROFILE RESULT:', data);
 
     const updatedProfile = normalizeProfile(authUser || { id: userId }, data);
 
     return { profile: updatedProfile, dbRow: data, error: null };
   } catch (err) {
-    console.error('[AquaRise Guardian] Supabase update failed with exception:', err);
-    return { profile: null, error: `We couldn't update your Guardian profile. Please try again.` };
+    console.error('EDIT PROFILE ERROR:', err?.message || err);
+    return { profile: null, error: err?.message || `We couldn't update your profile. Please try again.` };
   }
 }
 
@@ -360,65 +401,35 @@ export async function updateUserProfile(userId, profileUpdates, authUser = null)
  * Update Guardian status on canonical user profile
  */
 export async function updateGuardianProfile(userId, guardianData, authUser = null) {
-  const rawRole = typeof guardianData === 'object' ? guardianData.role : guardianData;
-  const points = rawRole === 'Ambassador' || rawRole === 'Regional Ambassador' ? 250 : 100;
-
-  const role = rawRole === 'Volunteer' ? 'Field Volunteer' : (rawRole === 'Ambassador' ? 'Regional Ambassador' : rawRole);
-
-  const cityVal = (typeof guardianData === 'object' && guardianData.city) ? guardianData.city.trim() : '';
+  if (!userId || userId === 'guest-user' || userId === 'local-user' || userId === 'guardian-user') {
+    return { profile: null, error: 'You must be signed in to your AquaRise account to become a Guardian.' };
+  }
 
   const updates = {
     isGuardian: true,
-    guardianRole: role,
+    guardianRole: guardianData.guardianRole || 'Field Volunteer',
     guardianJoinedAt: new Date().toISOString(),
-    primaryWaterbody: cityVal || 'Local Waters',
-    guardianPrimaryWaterbody: cityVal || 'Local Waters',
-    name: (typeof guardianData === 'object' && guardianData.name) ? guardianData.name.trim() : undefined,
-    city: cityVal || undefined,
-    impactPoints: points
+    city: guardianData.city,
+    country: guardianData.country,
+    primaryWaterbody: guardianData.primaryWaterbody
   };
-
-  // Clean undefined properties
-  Object.keys(updates).forEach((k) => updates[k] === undefined && delete updates[k]);
 
   return await updateUserProfile(userId, updates, authUser);
 }
 
 /**
- * Leave Guardian Program on canonical user profile
- * Updates public.profiles: sets is_guardian = false, guardian_role = null.
- * Preserves user profile row, historical participation, hours, certificates, and reports.
+ * Remove Guardian status from user profile (Requirement #8).
  */
 export async function leaveGuardianProgram(userId, authUser = null) {
   if (!userId || userId === 'guest-user' || userId === 'local-user' || userId === 'guardian-user') {
     return { profile: null, error: 'You must be signed in to your AquaRise account to leave the Guardian program.' };
   }
 
-  if (!isSupabaseConfigured) {
-    return { profile: null, error: 'Supabase environment is not configured.' };
-  }
+  const updates = {
+    isGuardian: false,
+    guardianRole: null,
+    guardianJoinedAt: null
+  };
 
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update({
-        is_guardian: false,
-        guardian_role: null,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', userId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('[AquaRise Guardian] Leave program update failed:', error.message);
-      return { profile: null, error: `We couldn't update your Guardian status. Please try again.` };
-    }
-
-    const updatedProfile = normalizeProfile(authUser || { id: userId }, data);
-    return { profile: updatedProfile, dbRow: data, error: null };
-  } catch (err) {
-    console.error('[AquaRise Guardian] Leave program update failed with exception:', err);
-    return { profile: null, error: `We couldn't update your Guardian status. Please try again.` };
-  }
+  return await updateUserProfile(userId, updates, authUser);
 }
