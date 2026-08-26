@@ -78,6 +78,10 @@ export function normalizeProfile(user, dbProfile = null) {
     ? dbProfile.major
     : '';
 
+  const avatarVal = (dbProfile?.avatar_url !== undefined && dbProfile?.avatar_url !== null)
+    ? dbProfile.avatar_url
+    : (meta.avatar_url || '');
+
   return {
     id,
     email,
@@ -94,8 +98,8 @@ export function normalizeProfile(user, dbProfile = null) {
     primaryWaterbody,
     guardianPrimaryWaterbody: primaryWaterbody,
     bio,
-    avatarUrl: dbProfile?.avatar_url || meta.avatar_url || '',
-    avatar: dbProfile?.avatar_url || meta.avatar_url || '',
+    avatarUrl: avatarVal,
+    avatar: avatarVal,
     isGuardian,
     guardianRole,
     guardianJoinedAt,
@@ -302,6 +306,112 @@ export async function fetchUserProfile(userId, authUser = null) {
 }
 
 /**
+ * Helper to convert base64 Data URL to a Blob object for Supabase Storage upload.
+ */
+function dataUrlToBlob(dataUrl) {
+  try {
+    const arr = dataUrl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Uploads user profile avatar to Supabase Storage 'avatars' bucket.
+ * Bucket path: <userId>/<timestamp>_<uuid>.<ext>
+ */
+export async function uploadProfileAvatar(userId, fileOrDataUrl) {
+  if (!isSupabaseConfigured) {
+    return { publicUrl: null, storagePath: null, error: 'Supabase environment is not configured.' };
+  }
+
+  if (!userId || userId === 'guest-user' || userId === 'local-user' || userId === 'guardian-user') {
+    return { publicUrl: null, storagePath: null, error: 'You must be signed in to upload a profile photo.' };
+  }
+
+  let blob = null;
+  let ext = 'jpg';
+
+  if (typeof fileOrDataUrl === 'string' && fileOrDataUrl.startsWith('data:image/')) {
+    blob = dataUrlToBlob(fileOrDataUrl);
+    if (fileOrDataUrl.includes('data:image/png')) ext = 'png';
+    else if (fileOrDataUrl.includes('data:image/webp')) ext = 'webp';
+  } else if (fileOrDataUrl instanceof File || fileOrDataUrl instanceof Blob) {
+    blob = fileOrDataUrl;
+    if (fileOrDataUrl.type === 'image/png') ext = 'png';
+    else if (fileOrDataUrl.type === 'image/webp') ext = 'webp';
+  }
+
+  if (!blob) {
+    return { publicUrl: null, storagePath: null, error: 'Invalid image file provided.' };
+  }
+
+  // Validate size (5 MB limit)
+  if (blob.size > 5 * 1024 * 1024) {
+    return { publicUrl: null, storagePath: null, error: 'Profile image size exceeds 5 MB limit.' };
+  }
+
+  const fileUuid = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  const storagePath = `${userId}/${Date.now()}_${fileUuid}.${ext}`;
+
+  try {
+    const { error: uploadErr } = await supabase
+      .storage
+      .from('avatars')
+      .upload(storagePath, blob, {
+        cacheControl: '3600',
+        upsert: true
+      });
+
+    if (uploadErr) {
+      console.error('[AquaRise Avatar] Storage upload failed:', uploadErr.message);
+      return { publicUrl: null, storagePath: null, error: uploadErr.message || 'Failed to upload profile photo to Storage.' };
+    }
+
+    const { data: urlData } = supabase
+      .storage
+      .from('avatars')
+      .getPublicUrl(storagePath);
+
+    if (!urlData || !urlData.publicUrl) {
+      return { publicUrl: null, storagePath: null, error: 'Could not obtain public URL for uploaded photo.' };
+    }
+
+    return { publicUrl: urlData.publicUrl, storagePath, error: null };
+  } catch (err) {
+    console.error('[AquaRise Avatar] Exception uploading avatar:', err);
+    return { publicUrl: null, storagePath: null, error: err?.message || 'Failed to upload profile photo.' };
+  }
+}
+
+/**
+ * Safely deletes a stored avatar object from the 'avatars' Storage bucket.
+ */
+export async function deleteProfileAvatar(storagePath) {
+  if (!isSupabaseConfigured || !storagePath) return;
+  try {
+    if (storagePath.includes('/avatars/')) {
+      const cleanPath = storagePath.split('/avatars/')[1];
+      if (cleanPath) {
+        await supabase.storage.from('avatars').remove([cleanPath]);
+      }
+    } else if (!storagePath.startsWith('http')) {
+      await supabase.storage.from('avatars').remove([storagePath]);
+    }
+  } catch (err) {
+    console.warn('[AquaRise Avatar] Non-blocking error deleting old avatar:', err);
+  }
+}
+
+/**
  * Update authenticated user profile in Supabase profiles table.
  * Targets active Supabase auth user UUID (`user.id`). Uses upsert to guarantee resilience.
  */
@@ -327,8 +437,9 @@ export async function updateUserProfile(userId, profileUpdates, authUser = null)
   }
 
   if (profileUpdates.bio !== undefined) dbUpdates.bio = String(profileUpdates.bio).trim();
-  if (profileUpdates.avatarUrl || profileUpdates.avatar) {
-    dbUpdates.avatar_url = profileUpdates.avatarUrl || profileUpdates.avatar;
+
+  if (profileUpdates.avatarUrl !== undefined || profileUpdates.avatar !== undefined) {
+    dbUpdates.avatar_url = profileUpdates.avatarUrl !== undefined ? profileUpdates.avatarUrl : profileUpdates.avatar;
   }
 
   if (profileUpdates.schoolOrganization !== undefined || profileUpdates.school !== undefined) {

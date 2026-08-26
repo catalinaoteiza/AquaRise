@@ -32,6 +32,13 @@ import SupplyPledgeModal from './components/modals/SupplyPledgeModal';
 import EditProfileModal from './components/modals/EditProfileModal';
 import SubmitCompletionEvidenceModal from './components/modals/SubmitCompletionEvidenceModal';
 import LeaveMissionModal from './components/modals/LeaveMissionModal';
+import ReviewerDashboardModal from './components/modals/ReviewerDashboardModal';
+
+// Shared Supabase Completion & Reviewer Service (Stage 7D)
+import {
+  isCompletionReviewer,
+  getMyCertificates
+} from './services/completionService.js';
 
 // Shared Supabase Community Missions Service (Stage 7B)
 import {
@@ -98,6 +105,11 @@ function AquaRiseApp() {
   const [evidenceTargetMission, setEvidenceTargetMission] = useState(null);
   const [leaveTargetMission, setLeaveTargetMission] = useState(null);
 
+  // Stage 7D Reviewer & Real Certificates State
+  const [isReviewer, setIsReviewer] = useState(false);
+  const [isReviewerDashboardOpen, setIsReviewerDashboardOpen] = useState(false);
+  const [realCertificates, setRealCertificates] = useState([]);
+
   // Shared Supabase Pollution Reports (Stage 7C)
   const [reports, setReports] = useState([]);
   const [loadingReports, setLoadingReports] = useState(true);
@@ -148,6 +160,24 @@ function AquaRiseApp() {
     }
   };
 
+  const loadReviewerStatusAndCertificates = async () => {
+    if (!user || !user.id) {
+      setIsReviewer(false);
+      setRealCertificates([]);
+      return;
+    }
+
+    try {
+      const reviewerRes = await isCompletionReviewer();
+      setIsReviewer(reviewerRes);
+
+      const certs = await getMyCertificates();
+      setRealCertificates(certs);
+    } catch (err) {
+      console.error('[AquaRise App] Error checking reviewer status or certificates:', err);
+    }
+  };
+
   useEffect(() => {
     cleanDemoRecordsFromStorage();
     loadCommunityMissions();
@@ -156,6 +186,7 @@ function AquaRiseApp() {
 
   useEffect(() => {
     loadUserJoinedMissions();
+    loadReviewerStatusAndCertificates();
   }, [user]);
 
   useEffect(() => {
@@ -164,6 +195,7 @@ function AquaRiseApp() {
       loadCommunityMissions();
       loadUserJoinedMissions();
       loadPollutionReports();
+      loadReviewerStatusAndCertificates();
     };
     window.addEventListener('aquarise_participation_changed', syncParticipations);
     window.addEventListener('aquarise_report_created', syncParticipations);
@@ -198,164 +230,128 @@ function AquaRiseApp() {
   };
 
   const handleViewMissionDetails = (mission) => {
-    setSelectedMission(mission);
+    setSelectedMissionDetail(mission);
+    setActiveTab('mission-detail');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleStartCreateCleanup = (initialData = null) => {
-    if (!user) {
-      showToast('Please sign in to organize a cleanup mission.', 'info');
-      setIsAuthModalOpen(true);
-      return;
-    }
-    if (!profile?.isGuardian) {
-      showToast('Only active AquaRise Guardians can organize cleanups. Become a Guardian first!', 'info');
-      setIsGuardianModalOpen(true);
-      return;
-    }
-    setCreateInitialData(initialData);
+  const handleStartCreateCleanup = (prefillData = null) => {
+    setCreateInitialData(prefillData);
     setActiveTab('create-cleanup');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleCreateCommunityMission = async (missionData) => {
+  const handleJoinMission = async (missionId) => {
     if (!user) {
-      showToast('You must be signed in to create a cleanup mission.', 'error');
-      return { error: 'You must be signed in to create a cleanup mission.' };
-    }
-    const res = await createCommunityMission(missionData, user.id);
-    if (res?.error) {
-      return res;
-    }
-    if (res?.mission) {
-      await loadCommunityMissions();
-      await loadUserJoinedMissions();
-      showToast('Community cleanup mission created and published!', 'success');
-      return res;
-    }
-    return { error: 'Could not create mission.' };
-  };
-
-  const handleJoinMission = async (missionId, eventDate) => {
-    if (!user) {
-      showToast('Please sign in to join community cleanup missions.', 'info');
       setIsAuthModalOpen(true);
-      return { error: 'Please sign in to join cleanups.' };
+      return;
     }
-    if (!profile?.isGuardian) {
-      showToast('Become an AquaRise Guardian to join community cleanup missions.', 'info');
-      setIsGuardianModalOpen(true);
-      return { error: 'Become an AquaRise Guardian to join community cleanup missions.' };
+
+    try {
+      const res = await joinCommunityMission(user.id, missionId);
+      if (res.error) {
+        showToast(res.error, 'error');
+        return;
+      }
+      showToast(res.message || 'Successfully joined community mission!', 'success');
+      loadUserJoinedMissions();
+      loadCommunityMissions();
+    } catch (err) {
+      showToast('Could not join mission. Please try again.', 'error');
     }
-    const res = await joinCommunityMission(missionId, user.id, eventDate);
-    if (res?.error) {
-      showToast(res.error, 'error');
-      return res;
-    }
-    await loadCommunityMissions();
-    await loadUserJoinedMissions();
-    showToast('You have joined this cleanup mission!', 'success');
-    return { success: true };
   };
 
   const handleLeaveMission = async (missionId) => {
-    if (!user) {
-      return { error: 'Please sign in.' };
+    if (!user) return;
+    try {
+      const res = await leaveCommunityMission(user.id, missionId);
+      if (res.error) {
+        showToast(res.error, 'error');
+        return;
+      }
+      showToast(res.message || 'You have left the community mission.', 'info');
+      loadUserJoinedMissions();
+      loadCommunityMissions();
+    } catch (err) {
+      showToast('Could not leave mission. Please try again.', 'error');
     }
-    const res = await leaveCommunityMission(missionId, user.id);
-    if (res?.error) {
-      showToast(res.error, 'error');
-      return res;
-    }
-    await loadCommunityMissions();
-    await loadUserJoinedMissions();
-    showToast('You have left the cleanup mission.', 'info');
-    return { success: true };
   };
 
-  const handleReportSubmitted = async (newReportData) => {
-    if (!user) {
-      showToast('Please sign in to file a pollution report.', 'info');
-      setIsAuthModalOpen(true);
-      return { error: 'Please sign in to file a pollution report.' };
+  const handleCreateCommunityMission = async (missionPayload) => {
+    if (!user || !profile?.isGuardian) {
+      showToast('You must be a verified AquaRise Guardian to publish community missions.', 'error');
+      return { mission: null, error: 'Guardian status required.' };
     }
-    const res = await createPollutionReport(newReportData);
-    if (res?.error) {
-      showToast(res.error, 'error');
+
+    try {
+      const res = await createCommunityMission(user.id, missionPayload);
+      if (res.error) {
+        showToast(res.error, 'error');
+        return res;
+      }
+
+      showToast('Community mission published successfully!', 'success');
+      loadCommunityMissions();
+      loadUserJoinedMissions();
       return res;
+    } catch (err) {
+      showToast('Failed to publish community mission.', 'error');
+      return { mission: null, error: 'Publish failed' };
     }
-    if (res?.report) {
-      await loadPollutionReports();
-      showToast('Pollution report filed and published to the AquaRise community!', 'success');
-      return res;
-    }
-    return { error: 'Could not submit report.' };
+  };
+
+  const handleReportSubmitted = async (reportPayload) => {
+    showToast('Pollution report submitted successfully to shared community map!', 'success');
+    loadPollutionReports();
+    setActiveTab('community');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSaveProfile = async (updatedProfile) => {
     try {
       const res = await updateProfile(updatedProfile);
       if (res?.error) {
+        showToast(res.error, 'error');
         return res;
       }
-      showToast('Profile changes saved.', 'success');
+      showToast('Profile updated successfully!', 'success');
       return res;
     } catch (err) {
-      showToast("We couldn't save your profile changes. Please try again.", 'error');
-      return { error: "We couldn't save your profile changes." };
+      showToast('Could not save profile changes.', 'error');
+      return { profile: null, error: 'Save failed' };
     }
   };
 
   const handleGuardianJoined = async (guardianData) => {
-    const res = await updateGuardianStatus(guardianData);
-    if (res?.error) {
+    try {
+      const res = await updateGuardianStatus(guardianData);
+      if (res?.error) {
+        showToast(res.error, 'error');
+        return res;
+      }
+      showToast('Welcome to the AquaRise Guardian Program!', 'success');
+      setIsGuardianModalOpen(false);
       return res;
+    } catch (err) {
+      showToast('Could not update Guardian status.', 'error');
+      return { profile: null, error: 'Update failed' };
     }
-    showToast('Welcome to the AquaRise Guardian Network.', 'success');
-    if (createInitialData) {
-      setActiveTab('create-cleanup');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-    return res;
   };
 
   const handleLeaveGuardianProgram = async () => {
-    const res = await leaveGuardianProgram();
-    if (res?.error) {
+    try {
+      const res = await leaveGuardianProgram();
+      if (res?.error) {
+        showToast(res.error, 'error');
+        return res;
+      }
+      showToast('You have left the Guardian Program.', 'info');
+      setIsGuardianModalOpen(false);
       return res;
+    } catch (err) {
+      showToast('Could not update Guardian status.', 'error');
+      return { profile: null, error: 'Update failed' };
     }
-    showToast('You have left the Guardian Program. Your past impact history remains intact.', 'info');
-    return res;
-  };
-
-  const handleEvidenceSubmitted = (evidenceData) => {
-    saveParticipationRecord(evidenceData);
-    setParticipations(getStoredParticipations());
-    showToast('Evidence submitted for verification.', 'success');
-  };
-
-  const handleGenerateCertificate = (record) => {
-    const isOfficial = isEvidenceOfficiallyVerified(record);
-
-    const certData = {
-      waterbodyName: record.waterbodyName || record.title || 'Waterbody Cleanup',
-      guardianName: profile?.name || 'AquaRise Volunteer',
-      organizerName: record.organizer || 'AquaRise Network',
-      date: record.date || new Date().toLocaleDateString(),
-      location: record.location || 'Local Waters',
-      volunteerHours: record.volunteerHours || 3,
-      debrisCollectedKg: record.debrisCollectedKg || 15,
-      isVerified: isOfficial,
-      issuerName: isOfficial ? 'AquaRise Environmental Verification Council' : 'AquaRise Self-Reported Log',
-      verifiedAt: record.verifiedAt || new Date().toISOString()
-    };
-
-    const newCert = createCertificateRecord(certData);
-    saveCertificateRecord(newCert);
-    setCertificates(getStoredCertificates());
-    setSelectedCertificate(newCert);
-    setActiveTab('certificate');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    showToast(isOfficial ? 'Official Certificate generated!' : 'Self-reported impact record saved.', 'success');
   };
 
   const handleViewCertificate = (cert) => {
@@ -382,10 +378,6 @@ function AquaRiseApp() {
         return (
           <ExploreView
             waterbodies={MOCK_WATERBODIES}
-            communityMissions={communityMissions}
-            joinedMissionIds={joinedMissionIds}
-            user={user}
-            profile={profile}
             onViewWaterbody={handleViewWaterbodyDetails}
             onProposeCleanup={(wb) => handleStartCreateCleanup(wb)}
             onViewMission={handleViewMissionDetails}
@@ -488,6 +480,23 @@ function AquaRiseApp() {
           />
         );
 
+      case 'mission-detail':
+        return (
+          <MissionDetailView
+            mission={selectedMissionDetail}
+            user={user}
+            profile={profile}
+            joinedMissionIds={joinedMissionIds}
+            onBack={() => setActiveTab('cleanups')}
+            onJoinMission={handleJoinMission}
+            onLeaveMission={handleLeaveMission}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+            onBecomeGuardian={handleOpenGuardian}
+            onSponsorClick={() => setSelectedSupply(MOCK_SUPPLIES[0])}
+            onToast={showToast}
+          />
+        );
+
       case 'community':
         return (
           <CommunityView
@@ -517,13 +526,12 @@ function AquaRiseApp() {
             joinedMissionIds={joinedMissionIds}
             missions={communityMissions}
             participations={participations}
-            certificates={certificates}
+            certificates={realCertificates.length > 0 ? realCertificates : certificates}
             onOpenAuth={() => setIsAuthModalOpen(true)}
             onOpenEditProfile={() => setIsEditProfileOpen(true)}
             onBecomeGuardian={handleOpenGuardian}
             onOpenSubmitEvidence={(m) => setEvidenceTargetMission(m)}
             onOpenLeaveMission={(m) => setLeaveTargetMission(m)}
-            onGenerateCertificate={(record) => handleGenerateCertificate(record)}
             onViewCertificate={(cert) => handleViewCertificate(cert)}
             onVerifyPage={() => setActiveTab('verify')}
             onNavigateCleanups={() => setActiveTab('cleanups')}
@@ -534,8 +542,12 @@ function AquaRiseApp() {
         return (
           <CertificateDetailView
             certificate={selectedCertificate}
-            onBackToImpact={() => setActiveTab('impact')}
-            onVerifyPage={() => setActiveTab('verify')}
+            onBack={() => setActiveTab('impact')}
+            onVerifyLinkClick={(code) => {
+              setVerifyTargetCertId(code);
+              setActiveTab('verify');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           />
         );
 
@@ -543,7 +555,8 @@ function AquaRiseApp() {
         return (
           <VerifyCertificateView
             initialCertId={verifyTargetCertId}
-            onBackToImpact={() => setActiveTab('impact')}
+            onNavigateHome={() => setActiveTab('home')}
+            onViewCertificate={(cert) => handleViewCertificate(cert)}
           />
         );
 
@@ -573,6 +586,8 @@ function AquaRiseApp() {
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onSignOut={() => signOut()}
         onOpenEditProfile={() => setIsEditProfileOpen(true)}
+        isReviewer={isReviewer}
+        onOpenReviewerDashboard={() => setIsReviewerDashboardOpen(true)}
       />
 
       <main className="flex-grow">
@@ -674,7 +689,28 @@ function AquaRiseApp() {
         mission={evidenceTargetMission}
         isOpen={Boolean(evidenceTargetMission)}
         onClose={() => setEvidenceTargetMission(null)}
-        onSubmitEvidence={(data) => handleEvidenceSubmitted(data)}
+        onSubmissionChanged={() => {
+          loadUserJoinedMissions();
+          loadReviewerStatusAndCertificates();
+        }}
+        onViewCertificate={(cert) => {
+          setSelectedCertificate(cert);
+          setActiveTab('certificate');
+          setEvidenceTargetMission(null);
+        }}
+        userProfile={profile}
+        onToast={showToast}
+      />
+
+      <ReviewerDashboardModal
+        isOpen={isReviewerDashboardOpen}
+        onClose={() => setIsReviewerDashboardOpen(false)}
+        userProfile={profile}
+        onToast={(msg, type) => {
+          showToast(msg, type);
+          loadUserJoinedMissions();
+          loadReviewerStatusAndCertificates();
+        }}
       />
 
       <LeaveMissionModal

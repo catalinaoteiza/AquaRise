@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, User, MapPin, GraduationCap, BookOpen, FileText, CheckCircle2, AlertCircle, Upload, Trash2, Camera } from 'lucide-react';
+import { X, User, MapPin, GraduationCap, BookOpen, FileText, CheckCircle2, AlertCircle, Upload, Trash2, Camera, Loader2 } from 'lucide-react';
+import { uploadProfileAvatar, deleteProfileAvatar } from '../../services/authService.js';
 
 /**
  * Client-side canvas image resizing utility
- * Resizes source file to max 512x512 pixels and compresses to JPEG data URL
+ * Resizes source file to max 512x512 pixels and compresses to WebP/JPEG data URL for fast preview
  */
 function compressProfileImage(file, maxDimension = 512, quality = 0.85) {
   return new Promise((resolve, reject) => {
@@ -58,6 +59,9 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
     avatarUrl: ''
   });
 
+  const [pendingImageFile, setPendingImageFile] = useState(null);
+  const [isPhotoRemoved, setIsPhotoRemoved] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
@@ -72,6 +76,9 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
         bio: profile.bio || '',
         avatarUrl: profile.avatarUrl || profile.avatar || ''
       });
+      setPendingImageFile(null);
+      setIsPhotoRemoved(false);
+      setIsUploading(false);
       setErrorMessage('');
     }
   }, [profile, isOpen]);
@@ -101,6 +108,8 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
     try {
       const compressedDataUrl = await compressProfileImage(file, 512, 0.85);
       setFormData((prev) => ({ ...prev, avatarUrl: compressedDataUrl }));
+      setPendingImageFile(file);
+      setIsPhotoRemoved(false);
     } catch (err) {
       setErrorMessage("Could not process the selected image. Please try another file.");
     }
@@ -108,6 +117,8 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
 
   const handleRemovePhoto = () => {
     setFormData((prev) => ({ ...prev, avatarUrl: '' }));
+    setPendingImageFile(null);
+    setIsPhotoRemoved(true);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -127,31 +138,61 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
       return;
     }
 
-    const updatedProfile = {
-      ...profile,
-      name: trimmedName,
-      fullName: trimmedName,
-      displayName: trimmedName,
-      country: formData.country.trim(),
-      city: formData.city.trim(),
-      region: formData.region.trim(),
-      location: [formData.city.trim(), formData.region.trim(), formData.country.trim()].filter(Boolean).join(', ') || profile?.location || '',
-      school: formData.school.trim(),
-      schoolOrganization: formData.school.trim(),
-      major: formData.major.trim(),
-      bio: formData.bio.trim(),
-      avatarUrl: formData.avatarUrl,
-      avatar: formData.avatarUrl
-    };
+    setIsUploading(true);
 
     try {
+      let finalAvatarUrl = formData.avatarUrl;
+      const oldAvatarUrl = profile.avatarUrl || profile.avatar;
+
+      // 1. Upload new photo to Supabase Storage 'avatars' bucket if chosen
+      if (pendingImageFile) {
+        const uploadRes = await uploadProfileAvatar(profile.id, pendingImageFile);
+        if (uploadRes.error) {
+          setErrorMessage(`Profile photo upload failed: ${uploadRes.error}`);
+          setIsUploading(false);
+          return;
+        }
+        if (uploadRes.publicUrl) {
+          finalAvatarUrl = uploadRes.publicUrl;
+        }
+      } else if (isPhotoRemoved) {
+        finalAvatarUrl = null;
+      }
+
+      const updatedProfile = {
+        ...profile,
+        name: trimmedName,
+        fullName: trimmedName,
+        displayName: trimmedName,
+        country: formData.country.trim(),
+        city: formData.city.trim(),
+        region: formData.region.trim(),
+        location: [formData.city.trim(), formData.region.trim(), formData.country.trim()].filter(Boolean).join(', ') || profile?.location || '',
+        school: formData.school.trim(),
+        schoolOrganization: formData.school.trim(),
+        major: formData.major.trim(),
+        bio: formData.bio.trim(),
+        avatarUrl: finalAvatarUrl,
+        avatar: finalAvatarUrl
+      };
+
+      // 2. Persist profile changes to Supabase public.profiles
       const res = await onSaveProfile(updatedProfile);
       if (res?.error) {
         setErrorMessage(res.error);
+        setIsUploading(false);
         return;
       }
+
+      // 3. Clean up old owned avatar from Storage after successful profile save
+      if ((pendingImageFile || isPhotoRemoved) && oldAvatarUrl && oldAvatarUrl !== finalAvatarUrl) {
+        deleteProfileAvatar(oldAvatarUrl);
+      }
+
+      setIsUploading(false);
       onClose();
     } catch (err) {
+      setIsUploading(false);
       setErrorMessage("We couldn't save your profile changes. Please try again.");
     }
   };
@@ -164,6 +205,7 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
         <button
           onClick={onClose}
           className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-ocean-950 transition-colors"
+          disabled={isUploading}
         >
           <X className="w-5 h-5" />
         </button>
@@ -219,12 +261,14 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
                   accept="image/jpeg,image/jpg,image/png,image/webp"
                   onChange={handleFileSelect}
                   className="hidden"
+                  disabled={isUploading}
                 />
 
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-4 py-2 rounded-xl bg-[#076DDF] hover:bg-[#3C92FF] text-white font-bold text-xs shadow-sm flex items-center gap-1.5 transition-all"
+                  disabled={isUploading}
+                  className="px-4 py-2 rounded-xl bg-[#076DDF] hover:bg-[#3C92FF] text-white font-bold text-xs shadow-sm flex items-center gap-1.5 transition-all disabled:opacity-50"
                 >
                   <Camera className="w-3.5 h-3.5" />
                   <span>{formData.avatarUrl ? 'Change Photo' : 'Upload Photo'}</span>
@@ -234,7 +278,8 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
                   <button
                     type="button"
                     onClick={handleRemovePhoto}
-                    className="px-3 py-2 rounded-xl bg-white hover:bg-rose-50 text-rose-600 font-bold text-xs border border-rose-200 flex items-center gap-1 transition-all"
+                    disabled={isUploading}
+                    className="px-3 py-2 rounded-xl bg-white hover:bg-rose-50 text-rose-600 font-bold text-xs border border-rose-200 flex items-center gap-1 transition-all disabled:opacity-50"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Remove Photo</span>
@@ -242,7 +287,7 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
                 )}
               </div>
             </div>
-            <p className="text-[11px] text-slate-500 font-medium">Supports JPG, PNG, WebP up to 5 MB. Automatically optimized for web performance.</p>
+            <p className="text-[11px] text-slate-500 font-medium">Supports JPG, PNG, WebP up to 5 MB. Automatically stored in Supabase Storage.</p>
           </div>
 
           <div>
@@ -255,6 +300,7 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full bg-slate-50 border border-teal-200 rounded-xl px-4 py-2.5 text-sm text-ocean-950 focus:outline-none focus:border-[#076DDF]"
+              disabled={isUploading}
             />
           </div>
 
@@ -267,6 +313,7 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
                 value={formData.country}
                 onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                 className="w-full bg-slate-50 border border-teal-200 rounded-xl px-3 py-2 text-sm text-ocean-950 focus:outline-none focus:border-[#076DDF]"
+                disabled={isUploading}
               />
             </div>
             <div>
@@ -277,6 +324,7 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                 className="w-full bg-slate-50 border border-teal-200 rounded-xl px-3 py-2 text-sm text-ocean-950 focus:outline-none focus:border-[#076DDF]"
+                disabled={isUploading}
               />
             </div>
           </div>
@@ -290,6 +338,7 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
                 value={formData.school}
                 onChange={(e) => setFormData({ ...formData, school: e.target.value })}
                 className="w-full bg-slate-50 border border-teal-200 rounded-xl px-3 py-2 text-sm text-ocean-950 focus:outline-none focus:border-[#076DDF]"
+                disabled={isUploading}
               />
             </div>
             <div>
@@ -300,6 +349,7 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
                 value={formData.major}
                 onChange={(e) => setFormData({ ...formData, major: e.target.value })}
                 className="w-full bg-slate-50 border border-teal-200 rounded-xl px-3 py-2 text-sm text-ocean-950 focus:outline-none focus:border-[#076DDF]"
+                disabled={isUploading}
               />
             </div>
           </div>
@@ -312,15 +362,24 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
               value={formData.bio}
               onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
               className="w-full bg-slate-50 border border-teal-200 rounded-xl px-4 py-2 text-sm text-ocean-950 focus:outline-none focus:border-[#076DDF] placeholder:text-slate-400"
+              disabled={isUploading}
             ></textarea>
           </div>
 
           <div className="pt-2">
             <button
               type="submit"
-              className="w-full py-3.5 rounded-full bg-[#076DDF] hover:bg-[#3C92FF] text-white font-extrabold text-sm shadow-md transition-all cursor-pointer"
+              disabled={isUploading}
+              className="w-full py-3.5 rounded-full bg-[#076DDF] hover:bg-[#3C92FF] text-white font-extrabold text-sm shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              Save Profile Changes
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Saving Changes...</span>
+                </>
+              ) : (
+                <span>Save Profile Changes</span>
+              )}
             </button>
           </div>
         </form>

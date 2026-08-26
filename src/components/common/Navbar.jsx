@@ -27,7 +27,9 @@ export default function Navbar({
   user,
   onOpenAuth,
   onSignOut,
-  onOpenEditProfile
+  onOpenEditProfile,
+  isReviewer,
+  onOpenReviewerDashboard
 }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -203,6 +205,17 @@ export default function Navbar({
                         <ShieldCheck className="w-4 h-4 text-[#076DDF]" />
                         <span>Verify Certificate</span>
                       </button>
+
+                      {isReviewer && onOpenReviewerDashboard && (
+                        <button
+                          type="button"
+                          onClick={() => handleDropdownSelect(onOpenReviewerDashboard)}
+                          className="w-full flex items-center gap-2.5 px-4 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 font-extrabold transition-colors cursor-pointer border-y border-amber-200"
+                        >
+                          <Shield className="w-4 h-4 text-amber-700" />
+                          <span>Completion Reviews</span>
+                        </button>
+                      )}
 
                       {onOpenEditProfile && (
                         <button
