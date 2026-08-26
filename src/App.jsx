@@ -247,15 +247,19 @@ function AquaRiseApp() {
       return;
     }
 
+    const targetId = typeof missionId === 'object' ? (missionId?.missionId || missionId?.id) : missionId;
+
     try {
-      const res = await joinCommunityMission(missionId, user.id);
-      if (res.error) {
+      console.log('[AquaRise App] handleJoinMission calling joinCommunityMission with missionId:', targetId);
+      const res = await joinCommunityMission(targetId);
+      if (res?.error) {
         showToast(res.error, 'error');
-        return;
+        return res;
       }
-      showToast(res.message || 'Successfully joined community mission!', 'success');
+      showToast(res?.message || 'Successfully joined community mission!', 'success');
       loadUserJoinedMissions();
       loadCommunityMissions();
+      return res;
     } catch (err) {
       showToast('Could not join mission. Please try again.', 'error');
     }
@@ -263,15 +267,20 @@ function AquaRiseApp() {
 
   const handleLeaveMission = async (missionId) => {
     if (!user) return;
+
+    const targetId = typeof missionId === 'object' ? (missionId?.missionId || missionId?.id) : missionId;
+
     try {
-      const res = await leaveCommunityMission(missionId, user.id);
-      if (res.error) {
+      console.log('[AquaRise App] handleLeaveMission calling leaveCommunityMission with missionId:', targetId);
+      const res = await leaveCommunityMission(targetId);
+      if (res?.error) {
         showToast(res.error, 'error');
-        return;
+        return res;
       }
-      showToast(res.message || 'You have left the community mission.', 'info');
+      showToast(res?.message || 'You have left the community mission.', 'info');
       loadUserJoinedMissions();
       loadCommunityMissions();
+      return res;
     } catch (err) {
       showToast('Could not leave mission. Please try again.', 'error');
     }

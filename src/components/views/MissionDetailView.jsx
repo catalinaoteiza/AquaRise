@@ -22,7 +22,8 @@ export default function MissionDetailView({
 
   if (!mission) return null;
 
-  const isJoined = (joinedMissionIds || []).includes(mission.id);
+  const targetMissionId = mission.missionId || mission.id;
+  const isJoined = (joinedMissionIds || []).includes(targetMissionId) || (joinedMissionIds || []).includes(mission.id);
   const handleToggleJoin = async () => {
     if (!user) {
       if (onOpenAuth) onOpenAuth();
@@ -34,9 +35,9 @@ export default function MissionDetailView({
     }
 
     if (isJoined) {
-      if (onLeaveMission) await onLeaveMission(mission.id);
+      if (onLeaveMission) await onLeaveMission(targetMissionId);
     } else {
-      if (onJoinMission) await onJoinMission(mission.id);
+      if (onJoinMission) await onJoinMission(targetMissionId);
     }
   };
 

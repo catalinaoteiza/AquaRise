@@ -42,6 +42,8 @@ export function normalizeMission(row, organizerProfile = null, participantRows =
 
   return {
     id: row.id,
+    missionId: row.id,
+    displayId: `community-${row.id}`,
     organizerId: row.organizer_id,
     title: row.title,
     name: row.title,
@@ -400,54 +402,27 @@ export async function fetchMissionParticipants(missionId) {
 
 /**
  * Joins a community mission in Supabase using atomic database RPC function join_community_mission.
- * Database enforces Guardian check, capacity limits, future event date, and unique constraint.
+ * Canonical single-argument signature: joinCommunityMission(missionId)
+ * p_mission_id must be the exact 36-character UUID from public.community_missions.id.
  */
-export async function joinCommunityMission(arg1, arg2 = null, eventDate = null) {
+export async function joinCommunityMission(missionId) {
   if (!isSupabaseConfigured) {
     return { success: false, error: 'Supabase environment is not configured.' };
   }
 
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const targetUuid = typeof missionId === 'string' ? missionId.trim() : '';
+
+  if (!targetUuid || !uuidRegex.test(targetUuid)) {
+    console.warn('[AquaRise Join] Invalid community mission ID:', missionId);
+    return { success: false, error: 'Invalid community mission ID.' };
+  }
+
+  console.log('[AquaRise Join] JOIN MISSION UUID:', targetUuid);
+
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    const authUser = session?.user;
-
-    if (!session || !authUser) {
-      return { success: false, error: 'You must be signed in to your AquaRise account to join cleanups.' };
-    }
-
-    const sessionUserId = authUser.id;
-
-    let rawMissionId = null;
-
-    if (typeof arg1 === 'object' && arg1 !== null) {
-      rawMissionId = arg1.id || arg1.missionId;
-    } else if (typeof arg2 === 'object' && arg2 !== null) {
-      rawMissionId = arg2.id || arg2.missionId;
-    } else if (arg1 === sessionUserId && arg2 && typeof arg2 === 'string') {
-      rawMissionId = arg2;
-    } else if (arg1 && typeof arg1 === 'string') {
-      rawMissionId = arg1;
-    }
-
-    if (!rawMissionId) {
-      return { success: false, error: 'Invalid mission identifier.' };
-    }
-
-    let targetMissionUuid = String(rawMissionId).trim();
-    if (targetMissionUuid.startsWith('community-')) {
-      targetMissionUuid = targetMissionUuid.replace(/^community-/, '');
-    }
-
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(targetMissionUuid)) {
-      console.warn('[AquaRise Join] Mission ID is not a valid Supabase UUID:', targetMissionUuid);
-      return { success: false, error: 'Cleanup mission not found or not published.' };
-    }
-
-    console.log('[AquaRise Join] Calling join_community_mission RPC with p_mission_id:', targetMissionUuid);
-
     const { data: rpcRes, error: rpcErr } = await supabase.rpc('join_community_mission', {
-      p_mission_id: targetMissionUuid
+      p_mission_id: targetUuid
     });
 
     if (rpcErr) {
@@ -469,10 +444,19 @@ export async function joinCommunityMission(arg1, arg2 = null, eventDate = null) 
 
 /**
  * Leaves a community mission in Supabase.
+ * Canonical single-argument signature: leaveCommunityMission(missionId)
  */
-export async function leaveCommunityMission(arg1, arg2 = null) {
+export async function leaveCommunityMission(missionId) {
   if (!isSupabaseConfigured) {
     return { success: false, error: 'Supabase environment is not configured.' };
+  }
+
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const targetUuid = typeof missionId === 'string' ? missionId.trim() : '';
+
+  if (!targetUuid || !uuidRegex.test(targetUuid)) {
+    console.warn('[AquaRise Leave] Invalid community mission ID:', missionId);
+    return { success: false, error: 'Invalid community mission ID.' };
   }
 
   try {
@@ -483,34 +467,13 @@ export async function leaveCommunityMission(arg1, arg2 = null) {
       return { success: false, error: 'You must be signed in to your AquaRise account to leave cleanups.' };
     }
 
-    const sessionUserId = authUser.id;
-
-    let rawMissionId = null;
-
-    if (typeof arg1 === 'object' && arg1 !== null) {
-      rawMissionId = arg1.id || arg1.missionId;
-    } else if (typeof arg2 === 'object' && arg2 !== null) {
-      rawMissionId = arg2.id || arg2.missionId;
-    } else if (arg1 === sessionUserId && arg2 && typeof arg2 === 'string') {
-      rawMissionId = arg2;
-    } else if (arg1 && typeof arg1 === 'string') {
-      rawMissionId = arg1;
-    }
-
-    if (!rawMissionId) {
-      return { success: false, error: 'Invalid mission identifier.' };
-    }
-
-    let targetMissionUuid = String(rawMissionId).trim();
-    if (targetMissionUuid.startsWith('community-')) {
-      targetMissionUuid = targetMissionUuid.replace(/^community-/, '');
-    }
+    console.log('[AquaRise Leave] LEAVE MISSION UUID:', targetUuid);
 
     const { error } = await supabase
       .from('mission_participants')
       .delete()
-      .eq('mission_id', targetMissionUuid)
-      .eq('user_id', sessionUserId);
+      .eq('mission_id', targetUuid)
+      .eq('user_id', authUser.id);
 
     if (error) {
       console.error('[AquaRise Missions] Leave mission failed:', error.message);

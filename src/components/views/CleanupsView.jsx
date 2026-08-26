@@ -205,10 +205,11 @@ export default function CleanupsView({
         return;
       }
 
-      const isJoined = joinedMissionIds.includes(mission.id);
+      const targetMissionId = mission.missionId || mission.id;
+      const isJoined = joinedMissionIds.includes(targetMissionId) || joinedMissionIds.includes(mission.id);
       if (isJoined) {
         if (onLeaveMission) {
-          const res = await onLeaveMission(mission.id);
+          const res = await onLeaveMission(targetMissionId);
           if (res?.error && onToast) onToast(res.error, 'error');
         }
       } else {
@@ -218,7 +219,7 @@ export default function CleanupsView({
         }
 
         if (onJoinMission) {
-          const res = await onJoinMission(mission.id, mission.date);
+          const res = await onJoinMission(targetMissionId);
           if (res?.error && onToast) onToast(res.error, 'error');
         }
       }

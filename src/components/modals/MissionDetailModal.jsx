@@ -50,9 +50,10 @@ export default function MissionDetailModal({
           return;
         }
 
+        const targetMissionId = mission.missionId || mission.id;
         if (isJoined) {
           if (onLeaveMission) {
-            const res = await onLeaveMission(mission.id);
+            const res = await onLeaveMission(targetMissionId);
             if (res?.error && onToast) onToast(res.error, 'error');
           }
         } else {
@@ -62,7 +63,7 @@ export default function MissionDetailModal({
           }
 
           if (onJoinMission) {
-            const res = await onJoinMission(mission.id, mission.date);
+            const res = await onJoinMission(targetMissionId);
             if (res?.error && onToast) onToast(res.error, 'error');
           }
         }

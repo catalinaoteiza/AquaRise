@@ -76,7 +76,7 @@ export default function MyCleanupsView({
 
   const handleRemove = (item) => {
     if (item.isCommunityOrganized || item.isUserCreated || item.organizerId) {
-      if (onLeaveMission) onLeaveMission(item.id);
+      if (onLeaveMission) onLeaveMission(item.missionId || item.id);
     } else {
       const res = leaveOrRemoveCleanup(item);
       loadParticipations();
