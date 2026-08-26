@@ -116,7 +116,7 @@ export default function MyCleanupsView({
         </div>
 
         {/* Required Honest Empty State (Requirement #14) */}
-        {participations.length === 0 ? (
+        {allMyCleanups.length === 0 ? (
           <div className="text-center py-20 px-6 bg-white rounded-3xl border border-[#92F1EC] space-y-6 max-w-2xl mx-auto shadow-md animate-fadeIn">
             <div className="w-16 h-16 rounded-2xl bg-teal-50 border border-[#92F1EC] text-[#19887F] mx-auto flex items-center justify-center">
               <Bookmark className="w-8 h-8" />
@@ -159,7 +159,7 @@ export default function MyCleanupsView({
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {upcoming.map((item) => (
                     <CleanupCard
-                      key={item.id}
+                      key={item.id || item.missionId}
                       item={item}
                       onRemove={() => handleRemove(item)}
                       onView={() => onViewMission && onViewMission(item)}
@@ -180,10 +180,10 @@ export default function MyCleanupsView({
                   </h2>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-85">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-95">
                   {past.map((item) => (
                     <CleanupCard
-                      key={item.id}
+                      key={item.id || item.missionId}
                       item={item}
                       onRemove={() => handleRemove(item)}
                       onView={() => onViewMission && onViewMission(item)}
@@ -203,9 +203,21 @@ export default function MyCleanupsView({
 }
 
 function CleanupCard({ item, onRemove, onView, onOpenEvidenceModal }) {
-  const isCommunity = item.type === 'community' || item.isUserCreated;
-  const isPending = item.verificationStatus === 'pending' || item.status === 'Pending Verification';
-  const isVerified = item.verificationStatus === 'verified' || item.status === 'Verified Complete';
+  const isCommunity = item.type === 'community' || item.isUserCreated || item.sourceType === 'aquarise_community' || item.organizerType === 'AquaRise Guardian';
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isPast = Boolean(item.date && item.date < todayStr);
+
+  const statusFromDb = item.participationStatus || 'joined';
+  const isPending = statusFromDb === 'pending_completion_verification' || item.verificationStatus === 'pending' || item.status === 'Pending Verification';
+  const isVerified = statusFromDb === 'completed' || item.verificationStatus === 'verified' || item.status === 'Verified Complete';
+
+  let badgeLabel = 'Saved';
+  if (isCommunity) {
+    if (isVerified) badgeLabel = 'Verified Complete';
+    else if (isPending) badgeLabel = 'Pending Verification';
+    else if (isPast) badgeLabel = 'Past Mission';
+    else badgeLabel = 'Joined';
+  }
 
   return (
     <div className="bg-white rounded-3xl border border-[#92F1EC] overflow-hidden flex flex-col justify-between shadow-md hover:border-[#35AEAC] transition-all">
@@ -216,8 +228,14 @@ function CleanupCard({ item, onRemove, onView, onOpenEvidenceModal }) {
           }`}>
             {isCommunity ? 'AquaRise Mission' : 'External Opportunity'}
           </span>
-          <span className="text-xs font-bold text-[#19887F] bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200">
-            {item.status || 'Saved'}
+          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
+            isVerified
+              ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+              : isPending
+              ? 'bg-amber-100 text-amber-800 border-amber-300'
+              : 'bg-teal-50 text-[#19887F] border-teal-200'
+          }`}>
+            {badgeLabel}
           </span>
         </div>
 
@@ -246,17 +264,13 @@ function CleanupCard({ item, onRemove, onView, onOpenEvidenceModal }) {
           </div>
         </div>
 
-        {/* Action Buttons (Requirement #1 & #16 & #17) */}
+        {/* Action Buttons */}
         <div className="pt-3 border-t border-[#92F1EC] space-y-2">
           <div className="flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                console.log('[AquaRise Participation] Leave clicked in My Cleanups:', {
-                  missionId: item.id || item.missionId,
-                  title: item.title
-                });
                 onRemove();
               }}
               className="p-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors text-xs font-bold flex items-center gap-1 cursor-pointer"
@@ -279,7 +293,7 @@ function CleanupCard({ item, onRemove, onView, onOpenEvidenceModal }) {
             ) : (
               <button
                 onClick={onView}
-                className="bg-slate-100 hover:bg-slate-200 text-ocean-950 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm transition-all"
+                className="bg-slate-100 hover:bg-slate-200 text-ocean-950 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm transition-all cursor-pointer"
               >
                 <span>View Details</span>
               </button>
@@ -290,16 +304,26 @@ function CleanupCard({ item, onRemove, onView, onOpenEvidenceModal }) {
           {isCommunity && (
             <button
               onClick={onOpenEvidenceModal}
-              className={`w-full py-2.5 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm transition-all ${
-                isPending
-                  ? 'bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200'
-                  : isVerified
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                  : 'bg-[#076DDF] text-white hover:bg-[#3C92FF]'
+              className={`w-full py-2.5 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer ${
+                isVerified
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                  : isPending
+                  ? 'bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300'
+                  : isPast
+                  ? 'bg-[#076DDF] hover:bg-[#3C92FF] text-white font-bold animate-pulse'
+                  : 'bg-teal-50 hover:bg-teal-100 text-[#19887F] border border-teal-200'
               }`}
             >
               <FileCheck className="w-4 h-4" />
-              <span>{isPending ? 'Pending Verification' : isVerified ? 'Verified Complete' : 'Submit Completion Evidence'}</span>
+              <span>
+                {isVerified
+                  ? 'Verified Complete'
+                  : isPending
+                  ? 'Pending Verification'
+                  : isPast
+                  ? 'Submit Completion Evidence'
+                  : 'Joined • Active Mission'}
+              </span>
             </button>
           )}
         </div>
