@@ -291,13 +291,19 @@ export async function getCompletionSubmissionsByStatus(filterStatus = 'pending')
 
   try {
     const { data: sessionData } = await supabase.auth.getSession();
-    const currentUserId = sessionData?.session?.user?.id;
+    const sessionUser = sessionData?.session?.user;
+    const currentUserId = sessionUser?.id;
+
+    if (!sessionUser || !currentUserId) {
+      console.warn('[AquaRise Reviewer] Cannot fetch submissions: No active authenticated session.');
+      return [];
+    }
 
     let query = supabase
       .from('mission_completion_submissions')
       .select(`
         *,
-        community_missions (*),
+        community_missions!mission_id (*),
         profiles!user_id (*),
         certificates (*)
       `)
