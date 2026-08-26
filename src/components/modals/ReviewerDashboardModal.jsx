@@ -209,8 +209,14 @@ export default function ReviewerDashboardModal({ isOpen, onClose, userProfile, o
                           <User className="w-3.5 h-3.5 text-[#19887F]" />
                           {profile.display_name || profile.full_name || 'AquaRise Guardian'}
                         </span>
-                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                          {sub.status}
+                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
+                          sub.status === 'approved'
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                            : sub.status === 'rejected'
+                            ? 'bg-rose-100 text-rose-800 border-rose-300'
+                            : 'bg-amber-100 text-amber-800 border-amber-300'
+                        }`}>
+                          {sub.status === 'approved' ? 'Approved' : sub.status === 'rejected' ? 'Rejected' : 'Pending Review'}
                         </span>
                       </div>
 
@@ -245,7 +251,7 @@ export default function ReviewerDashboardModal({ isOpen, onClose, userProfile, o
                 </div>
                 <button
                   onClick={() => setSelectedSubmission(null)}
-                  className="text-xs text-slate-500 hover:text-ocean-950 font-bold"
+                  className="text-xs text-slate-500 hover:text-ocean-950 font-bold cursor-pointer"
                 >
                   Close Detail
                 </button>
@@ -330,81 +336,154 @@ export default function ReviewerDashboardModal({ isOpen, onClose, userProfile, o
                 )}
               </div>
 
-              {/* Reviewer Notes Input */}
-              {selectedSubmission.status === 'pending' && (
-                <div className="space-y-1 pt-2">
-                  <label className="block text-xs font-bold text-ocean-950 uppercase tracking-wider">
-                    Reviewer Notes / Feedback <span className="text-slate-400 font-normal">(Required if rejecting)</span>
-                  </label>
-                  <textarea
-                    rows="2"
-                    placeholder="Provide feedback for the participant..."
-                    value={reviewNotes}
-                    onChange={(e) => setReviewNotes(e.target.value)}
-                    className="w-full bg-white border border-teal-200 rounded-xl px-3 py-2 text-xs text-ocean-950 focus:outline-none focus:border-[#076DDF]"
-                    disabled={isSubmittingReview}
-                  ></textarea>
+              {/* READ-ONLY VIEW FOR REJECTED SUBMISSIONS */}
+              {selectedSubmission.status === 'rejected' && (
+                <div className="space-y-4 pt-2">
+                  <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs space-y-2">
+                    <div className="flex items-center gap-2 text-rose-800 font-extrabold">
+                      <XCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>Rejected / Returned to Participant</span>
+                    </div>
+                    <p className="text-rose-700 leading-relaxed font-medium text-[11px]">
+                      This submission was rejected and returned to the participant for resubmission. Reviewers cannot directly approve a rejected submission until the participant updates and resubmits evidence.
+                    </p>
+                    {selectedSubmission.reviewed_at && (
+                      <div className="text-[10px] text-rose-600 font-bold pt-1">
+                        Reviewed on: {new Date(selectedSubmission.reviewed_at).toLocaleDateString()} {new Date(selectedSubmission.reviewed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    )}
+                  </div>
+
+                  {selectedSubmission.review_notes && (
+                    <div className="space-y-1">
+                      <label className="block text-xs font-bold text-ocean-950 uppercase tracking-wider">
+                        Reviewer Feedback Sent to Participant
+                      </label>
+                      <div className="p-3.5 rounded-xl bg-white border border-rose-200 text-xs text-rose-900 font-medium leading-relaxed">
+                        {selectedSubmission.review_notes}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Action Buttons for Pending Submissions */}
-              {selectedSubmission.status === 'pending' && (
-                <div className="pt-3 border-t border-teal-200 space-y-3">
-                  
-                  {showApproveConfirm ? (
-                    <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 space-y-3 animate-fadeIn">
-                      <div className="flex items-center gap-2 text-emerald-800 text-xs font-bold">
-                        <Award className="w-5 h-5 text-emerald-600 shrink-0" />
-                        <span>Approve this completion submission?</span>
-                      </div>
-                      <p className="text-[11px] text-emerald-700 leading-relaxed font-medium">
-                        Approval will mark participation completed, record verified volunteer time, and issue an official AquaRise certificate.
-                      </p>
-                      <div className="flex items-center gap-2 pt-1">
-                        <button
-                          type="button"
-                          onClick={handleApproveConfirm}
-                          disabled={isSubmittingReview}
-                          className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50"
-                        >
-                          {isSubmittingReview ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                          <span>Confirm Approval</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowApproveConfirm(false)}
-                          disabled={isSubmittingReview}
-                          className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs border border-slate-200"
-                        >
-                          Cancel
-                        </button>
-                      </div>
+              {/* READ-ONLY VIEW FOR APPROVED SUBMISSIONS */}
+              {selectedSubmission.status === 'approved' && (
+                <div className="space-y-4 pt-2">
+                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-xs space-y-2">
+                    <div className="flex items-center gap-2 text-emerald-800 font-extrabold">
+                      <Award className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Approved & Certificate Issued</span>
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={handleReject}
-                        disabled={isSubmittingReview}
-                        className="py-3 rounded-xl bg-white hover:bg-rose-50 text-rose-600 border border-rose-300 font-extrabold text-xs shadow-sm flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        <span>Reject Submission</span>
-                      </button>
+                    <p className="text-emerald-700 leading-relaxed font-medium text-[11px]">
+                      This completion submission was approved and verified. An official AquaRise recognition certificate has been issued to the participant.
+                    </p>
+                    {selectedSubmission.reviewed_at && (
+                      <div className="text-[10px] text-emerald-600 font-bold pt-1">
+                        Reviewed on: {new Date(selectedSubmission.reviewed_at).toLocaleDateString()} {new Date(selectedSubmission.reviewed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    )}
+                  </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setShowApproveConfirm(true)}
-                        disabled={isSubmittingReview}
-                        className="py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-sm flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
-                      >
-                        <Award className="w-4 h-4" />
-                        <span>Approve & Issue Certificate</span>
-                      </button>
+                  {(selectedSubmission.certificates?.[0]?.certificate_code || selectedSubmission.certificates?.certificate_code) && (
+                    <div className="p-3.5 rounded-xl bg-white border border-emerald-200 text-xs flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-500 uppercase font-bold block">Issued Certificate Code</span>
+                        <strong className="font-mono text-sm text-ocean-950 font-black tracking-wider">
+                          {selectedSubmission.certificates?.[0]?.certificate_code || selectedSubmission.certificates?.certificate_code}
+                        </strong>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-300">
+                        Verified Code
+                      </span>
                     </div>
                   )}
 
+                  {selectedSubmission.review_notes && (
+                    <div className="space-y-1">
+                      <label className="block text-xs font-bold text-ocean-950 uppercase tracking-wider">
+                        Reviewer Notes
+                      </label>
+                      <div className="p-3.5 rounded-xl bg-white border border-teal-100 text-xs text-slate-800 font-medium leading-relaxed">
+                        {selectedSubmission.review_notes}
+                      </div>
+                    </div>
+                  )}
                 </div>
+              )}
+
+              {/* Reviewer Notes Input & Actions for PENDING Submissions */}
+              {selectedSubmission.status === 'pending' && (
+                <>
+                  <div className="space-y-1 pt-2">
+                    <label className="block text-xs font-bold text-ocean-950 uppercase tracking-wider">
+                      Reviewer Notes / Feedback <span className="text-slate-400 font-normal">(Required if rejecting)</span>
+                    </label>
+                    <textarea
+                      rows="2"
+                      placeholder="Provide feedback for the participant..."
+                      value={reviewNotes}
+                      onChange={(e) => setReviewNotes(e.target.value)}
+                      className="w-full bg-white border border-teal-200 rounded-xl px-3 py-2 text-xs text-ocean-950 focus:outline-none focus:border-[#076DDF]"
+                      disabled={isSubmittingReview}
+                    ></textarea>
+                  </div>
+
+                  <div className="pt-3 border-t border-teal-200 space-y-3">
+                    {showApproveConfirm ? (
+                      <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 space-y-3 animate-fadeIn">
+                        <div className="flex items-center gap-2 text-emerald-800 text-xs font-bold">
+                          <Award className="w-5 h-5 text-emerald-600 shrink-0" />
+                          <span>Approve this completion submission?</span>
+                        </div>
+                        <p className="text-[11px] text-emerald-700 leading-relaxed font-medium">
+                          Approval will mark participation completed, record verified volunteer time, and issue an official AquaRise certificate.
+                        </p>
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={handleApproveConfirm}
+                            disabled={isSubmittingReview}
+                            className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                          >
+                            {isSubmittingReview ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                            <span>Confirm Approval</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowApproveConfirm(false)}
+                            disabled={isSubmittingReview}
+                            className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs border border-slate-200 cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={handleReject}
+                          disabled={isSubmittingReview}
+                          className="py-3 rounded-xl bg-white hover:bg-rose-50 text-rose-600 border border-rose-300 font-extrabold text-xs shadow-sm flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          <span>Reject Submission</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowApproveConfirm(true)}
+                          disabled={isSubmittingReview}
+                          className="py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-sm flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                        >
+                          <Award className="w-4 h-4" />
+                          <span>Approve & Issue Certificate</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
 
             </div>

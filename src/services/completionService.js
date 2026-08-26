@@ -250,10 +250,10 @@ export async function isCompletionReviewer() {
 }
 
 /**
- * Fetch submissions for the Reviewer Dashboard.
- * Filters: 'pending' (default), 'approved', 'rejected'
+ * Fetch submissions for the Reviewer Dashboard by status ('pending', 'approved', 'rejected').
+ * Includes mission, participant profile, and certificates.
  */
-export async function getPendingCompletionSubmissions(filterStatus = 'pending') {
+export async function getCompletionSubmissionsByStatus(filterStatus = 'pending') {
   if (!isSupabaseConfigured) return [];
 
   try {
@@ -265,9 +265,10 @@ export async function getPendingCompletionSubmissions(filterStatus = 'pending') 
       .select(`
         *,
         community_missions (*),
-        profiles!user_id (*)
+        profiles!user_id (*),
+        certificates (*)
       `)
-      .order('submitted_at', { ascending: false });
+      .order('updated_at', { ascending: false });
 
     if (filterStatus) {
       query = query.eq('status', filterStatus);
@@ -276,7 +277,7 @@ export async function getPendingCompletionSubmissions(filterStatus = 'pending') 
     const { data, error } = await query;
 
     if (error) {
-      console.error('[AquaRise Reviewer] Error fetching pending submissions:', error.message);
+      console.error('[AquaRise Reviewer] Error fetching submissions by status:', error.message);
       return [];
     }
 
@@ -289,10 +290,13 @@ export async function getPendingCompletionSubmissions(filterStatus = 'pending') 
 
     return rawList;
   } catch (err) {
-    console.error('[AquaRise Reviewer] Exception fetching submissions:', err);
+    console.error('[AquaRise Reviewer] Exception fetching submissions by status:', err);
     return [];
   }
 }
+
+// Export alias for backwards compatibility
+export const getPendingCompletionSubmissions = getCompletionSubmissionsByStatus;
 
 /**
  * Review a completion submission (approve or reject) via RPC.
