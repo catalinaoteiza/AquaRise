@@ -248,7 +248,7 @@ function AquaRiseApp() {
     }
 
     try {
-      const res = await joinCommunityMission(user.id, missionId);
+      const res = await joinCommunityMission(missionId, user.id);
       if (res.error) {
         showToast(res.error, 'error');
         return;
@@ -264,7 +264,7 @@ function AquaRiseApp() {
   const handleLeaveMission = async (missionId) => {
     if (!user) return;
     try {
-      const res = await leaveCommunityMission(user.id, missionId);
+      const res = await leaveCommunityMission(missionId, user.id);
       if (res.error) {
         showToast(res.error, 'error');
         return;

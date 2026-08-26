@@ -6,14 +6,41 @@ import { getCleanupDateStatus, formatCleanupDate, formatCleanupStartTime, format
 
 export default function MissionDetailView({
   mission,
-  isJoined,
-  onToggleJoin,
-  onOpenSponsorModal,
-  onBackToCleanups
+  user,
+  profile,
+  joinedMissionIds = [],
+  onJoinMission,
+  onLeaveMission,
+  onOpenAuth,
+  onBecomeGuardian,
+  onSponsorClick,
+  onBack,
+  onBackToCleanups,
+  onToast
 }) {
   const [copiedLink, setCopiedLink] = useState(false);
 
   if (!mission) return null;
+
+  const isJoined = (joinedMissionIds || []).includes(mission.id);
+  const handleToggleJoin = async () => {
+    if (!user) {
+      if (onOpenAuth) onOpenAuth();
+      return;
+    }
+    if (!profile?.isGuardian) {
+      if (onBecomeGuardian) onBecomeGuardian();
+      return;
+    }
+
+    if (isJoined) {
+      if (onLeaveMission) await onLeaveMission(mission.id);
+    } else {
+      if (onJoinMission) await onJoinMission(mission.id);
+    }
+  };
+
+  const handleBack = onBack || onBackToCleanups;
 
   const currentCount = (mission.participantCount || 0) + (isJoined ? 1 : 0);
   const heroImage = mission.bannerImage || mission.image;
@@ -171,7 +198,7 @@ export default function MissionDetailView({
                 ) : (
                   <button
                     type="button"
-                    onClick={() => onToggleJoin(mission.id)}
+                    onClick={handleToggleJoin}
                     className={`w-full py-3 rounded-full font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
                       isJoined
                         ? 'bg-rose-600 hover:bg-rose-700 text-white'
