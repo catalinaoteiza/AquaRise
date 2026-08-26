@@ -354,18 +354,8 @@ export async function updateUserProfile(userId, profileUpdates, authUser = null)
   // Clean undefined properties
   Object.keys(dbUpdates).forEach((key) => dbUpdates[key] === undefined && delete dbUpdates[key]);
 
-  // Diagnostic Payload Logging
-  console.log('EDIT PROFILE PAYLOAD:', {
-    full_name: dbUpdates.full_name,
-    school_organization: dbUpdates.school_organization,
-    major: dbUpdates.major,
-    city: dbUpdates.city,
-    country: dbUpdates.country,
-    bio: dbUpdates.bio
-  });
-
   if (!isSupabaseConfigured) {
-    console.error('EDIT PROFILE ERROR: Supabase environment is not configured.');
+    console.error('[AquaRise Profile] Supabase update failed: Supabase environment is not configured.');
     return { profile: null, error: 'Supabase environment is not configured.' };
   }
 
@@ -377,22 +367,20 @@ export async function updateUserProfile(userId, profileUpdates, authUser = null)
       .single();
 
     if (error) {
-      console.error('EDIT PROFILE ERROR:', error.message);
+      console.error('[AquaRise Profile] Supabase update failed:', error.message);
       return { profile: null, error: error.message || `We couldn't update your profile. Please try again.` };
     }
 
     if (!data) {
-      console.error('EDIT PROFILE ERROR: Supabase update returned no row.');
+      console.error('[AquaRise Profile] Supabase update returned no row.');
       return { profile: null, error: `We couldn't update your profile. Please try again.` };
     }
-
-    console.log('EDIT PROFILE RESULT:', data);
 
     const updatedProfile = normalizeProfile(authUser || { id: userId }, data);
 
     return { profile: updatedProfile, dbRow: data, error: null };
   } catch (err) {
-    console.error('EDIT PROFILE ERROR:', err?.message || err);
+    console.error('[AquaRise Profile] Supabase update exception:', err);
     return { profile: null, error: err?.message || `We couldn't update your profile. Please try again.` };
   }
 }

@@ -59,7 +59,6 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
   });
 
   const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     if (profile) {
@@ -74,7 +73,6 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
         avatarUrl: profile.avatarUrl || profile.avatar || ''
       });
       setErrorMessage('');
-      setSuccessMessage('');
     }
   }, [profile, isOpen]);
 
@@ -85,7 +83,6 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
     if (!file) return;
 
     setErrorMessage('');
-    setSuccessMessage('');
 
     // Format Validation
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -117,17 +114,16 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
-    setSuccessMessage('');
 
     if (!profile?.id) {
-      setErrorMessage('Profile update failed: You must be signed in to your AquaRise account to update your profile.');
+      setErrorMessage('You must be signed in to your AquaRise account to update your profile.');
       return;
     }
 
     const trimmedName = formData.name.trim();
 
     if (!trimmedName) {
-      setErrorMessage('Profile update failed: Display name cannot be empty.');
+      setErrorMessage('Display name cannot be empty.');
       return;
     }
 
@@ -151,19 +147,12 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
     try {
       const res = await onSaveProfile(updatedProfile);
       if (res?.error) {
-        setErrorMessage(`Profile update failed: ${res.error}`);
-        setSuccessMessage('');
+        setErrorMessage(res.error);
         return;
       }
-      setSuccessMessage('Profile update sent successfully');
-      setErrorMessage('');
-      setTimeout(() => {
-        onClose();
-        setSuccessMessage('');
-      }, 1500);
+      onClose();
     } catch (err) {
-      setErrorMessage(`Profile update failed: ${err?.message || "We couldn't save your profile changes. Please try again."}`);
-      setSuccessMessage('');
+      setErrorMessage("We couldn't save your profile changes. Please try again.");
     }
   };
 
@@ -190,15 +179,7 @@ export default function EditProfileModal({ profile, isOpen, onClose, onSaveProfi
           </div>
         </div>
 
-        {/* Diagnostic Success Banner */}
-        {successMessage && (
-          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-            <span>{successMessage}</span>
-          </div>
-        )}
-
-        {/* Diagnostic Error Banner */}
+        {/* Validation Error Alert */}
         {errorMessage && (
           <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
