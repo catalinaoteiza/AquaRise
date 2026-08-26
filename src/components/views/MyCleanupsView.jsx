@@ -3,6 +3,7 @@ import { Bookmark, Calendar, MapPin, ExternalLink, Compass, Trash2, CheckCircle2
 import { getParticipations, leaveOrRemoveCleanup, categorizeParticipations } from '../../services/participationService';
 import { deduplicateCleanups } from '../../utils/cleanupUtils.js';
 import { getMyAllCompletionSubmissionsMap } from '../../services/completionService.js';
+import { fetchUserJoinedMissionsDirect } from '../../services/communityMissionService.js';
 
 export default function MyCleanupsView({
   user,
@@ -18,14 +19,20 @@ export default function MyCleanupsView({
   onToast
 }) {
   const [participations, setParticipations] = useState([]);
+  const [directUserMissions, setDirectUserMissions] = useState([]);
   const [mySubmissionsMap, setMySubmissionsMap] = useState({});
 
   const loadParticipations = async () => {
     setParticipations(getParticipations());
     if (user?.id) {
-      const subMap = await getMyAllCompletionSubmissionsMap();
+      const [directMissions, subMap] = await Promise.all([
+        fetchUserJoinedMissionsDirect(user.id),
+        getMyAllCompletionSubmissionsMap()
+      ]);
+      setDirectUserMissions(directMissions);
       setMySubmissionsMap(subMap);
     } else {
+      setDirectUserMissions([]);
       setMySubmissionsMap({});
     }
   };
@@ -50,10 +57,15 @@ export default function MyCleanupsView({
   const allMyCleanups = useMemo(() => {
     if (!user) return [];
 
-    // 1. Community missions joined by user or organized by user in Supabase
+    // 1. Community missions derived from user's real public.mission_participants rows
     const userCommunityMissions = (communityMissions || []).filter(
       (m) => joinedMissionIds.includes(m.id) || m.organizerId === user.id
-    ).map((m) => {
+    );
+
+    const mergedCommunityMissions = deduplicateCleanups([
+      ...directUserMissions,
+      ...userCommunityMissions
+    ]).map((m) => {
       const sub = mySubmissionsMap[m.id] || null;
       return {
         ...m,
@@ -66,8 +78,8 @@ export default function MyCleanupsView({
     // 2. Saved external opportunities
     const externalSaved = (participations || []).filter((p) => p.type === 'external');
 
-    return deduplicateCleanups([...userCommunityMissions, ...externalSaved]);
-  }, [user, communityMissions, joinedMissionIds, participations, mySubmissionsMap]);
+    return deduplicateCleanups([...mergedCommunityMissions, ...externalSaved]);
+  }, [user, directUserMissions, communityMissions, joinedMissionIds, participations, mySubmissionsMap]);
 
   if (!user) {
     return (

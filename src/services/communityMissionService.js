@@ -363,6 +363,81 @@ export async function fetchUserJoinedMissionIds(userId) {
 }
 
 /**
+ * Fetches user's real participation rows directly from public.mission_participants
+ * joined with public.community_missions and organizer profiles.
+ * Source of truth: public.mission_participants for auth.uid().
+ */
+export async function fetchUserJoinedMissionsDirect(userId) {
+  if (!userId || userId === 'guest-user' || userId === 'local-user' || !isSupabaseConfigured) {
+    return [];
+  }
+
+  try {
+    const { data: partRows, error: partErr } = await supabase
+      .from('mission_participants')
+      .select(`
+        mission_id,
+        user_id,
+        joined_at,
+        participation_status,
+        community_missions (*)
+      `)
+      .eq('user_id', userId);
+
+    if (partErr) {
+      console.error('[AquaRise Missions] Error fetching direct user participations:', partErr.message);
+      return [];
+    }
+
+    if (!partRows || partRows.length === 0) {
+      return [];
+    }
+
+    const organizerIds = Array.from(
+      new Set(
+        partRows
+          .map((pr) => pr.community_missions?.organizer_id)
+          .filter(Boolean)
+      )
+    );
+
+    let profilesMap = {};
+    if (organizerIds.length > 0) {
+      const { data: profileRows } = await supabase
+        .from('profiles')
+        .select('id, full_name, display_name, guardian_role, avatar_url, city, country, is_guardian')
+        .in('id', organizerIds);
+
+      if (profileRows) {
+        profileRows.forEach((p) => {
+          profilesMap[p.id] = p;
+        });
+      }
+    }
+
+    const result = [];
+    for (const pr of partRows) {
+      const row = pr.community_missions;
+      if (!row) continue;
+
+      const organizerProf = profilesMap[row.organizer_id] || null;
+      const normalized = normalizeMission(row, organizerProf, [pr]);
+
+      result.push({
+        ...normalized,
+        participationStatus: pr.participation_status || 'joined',
+        joinedAt: pr.joined_at
+      });
+    }
+
+    return result;
+  } catch (err) {
+    console.error('[AquaRise Missions] Exception fetching direct user joined missions:', err);
+    return [];
+  }
+}
+
+/**
  * Fetches participants for a specific mission from Supabase.
  * Exposes only safe public profile fields (display_name, avatar_url, city, country, guardian_role).
  * Never exposes email, phone, auth metadata, or tokens.
