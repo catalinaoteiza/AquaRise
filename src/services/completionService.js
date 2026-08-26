@@ -36,6 +36,39 @@ export async function getMyCompletionSubmission(missionId) {
 }
 
 /**
+ * Fetch all completion submissions for the current authenticated user mapped by mission_id.
+ */
+export async function getMyAllCompletionSubmissionsMap() {
+  if (!isSupabaseConfigured) return {};
+
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const user = sessionData?.session?.user;
+    if (!user) return {};
+
+    const { data, error } = await supabase
+      .from('mission_completion_submissions')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.warn('[AquaRise Completion] Error fetching my submissions:', error.message);
+      return {};
+    }
+
+    const map = {};
+    (data || []).forEach((sub) => {
+      map[sub.mission_id] = sub;
+    });
+
+    return map;
+  } catch (err) {
+    console.error('[AquaRise Completion] Exception fetching my submissions:', err);
+    return {};
+  }
+}
+
+/**
  * Save or update a completion draft submission via RPC.
  */
 export async function saveCompletionDraft({ missionId, contribution, volunteerMinutes, notes = null }) {

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Bookmark, Calendar, MapPin, ExternalLink, Compass, Trash2, CheckCircle2, ShieldCheck, Flag, Info, FileCheck, Clock, AlertCircle } from 'lucide-react';
+import { Bookmark, Calendar, MapPin, ExternalLink, Compass, Trash2, CheckCircle2, ShieldCheck, Flag, Info, FileCheck, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import { getParticipations, leaveOrRemoveCleanup, categorizeParticipations } from '../../services/participationService';
 import { deduplicateCleanups } from '../../utils/cleanupUtils.js';
+import { getMyAllCompletionSubmissionsMap } from '../../services/completionService.js';
 
 export default function MyCleanupsView({
   user,
@@ -17,9 +18,16 @@ export default function MyCleanupsView({
   onToast
 }) {
   const [participations, setParticipations] = useState([]);
+  const [mySubmissionsMap, setMySubmissionsMap] = useState({});
 
-  const loadParticipations = () => {
+  const loadParticipations = async () => {
     setParticipations(getParticipations());
+    if (user?.id) {
+      const subMap = await getMyAllCompletionSubmissionsMap();
+      setMySubmissionsMap(subMap);
+    } else {
+      setMySubmissionsMap({});
+    }
   };
 
   useEffect(() => {
@@ -27,13 +35,17 @@ export default function MyCleanupsView({
 
     const handleStorageChange = () => loadParticipations();
     window.addEventListener('aquarise_participation_changed', handleStorageChange);
+    window.addEventListener('aquarise_report_created', handleStorageChange);
+    window.addEventListener('aquarise_completion_changed', handleStorageChange);
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
       window.removeEventListener('aquarise_participation_changed', handleStorageChange);
+      window.removeEventListener('aquarise_report_created', handleStorageChange);
+      window.removeEventListener('aquarise_completion_changed', handleStorageChange);
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [user?.id]);
 
   const allMyCleanups = useMemo(() => {
     if (!user) return [];
@@ -41,13 +53,21 @@ export default function MyCleanupsView({
     // 1. Community missions joined by user or organized by user in Supabase
     const userCommunityMissions = (communityMissions || []).filter(
       (m) => joinedMissionIds.includes(m.id) || m.organizerId === user.id
-    );
+    ).map((m) => {
+      const sub = mySubmissionsMap[m.id] || null;
+      return {
+        ...m,
+        submission: sub,
+        submissionStatus: sub?.status || null,
+        reviewNotes: sub?.review_notes || null
+      };
+    });
 
     // 2. Saved external opportunities
     const externalSaved = (participations || []).filter((p) => p.type === 'external');
 
     return deduplicateCleanups([...userCommunityMissions, ...externalSaved]);
-  }, [user, communityMissions, joinedMissionIds, participations]);
+  }, [user, communityMissions, joinedMissionIds, participations, mySubmissionsMap]);
 
   if (!user) {
     return (
@@ -207,14 +227,18 @@ function CleanupCard({ item, onRemove, onView, onOpenEvidenceModal }) {
   const todayStr = new Date().toISOString().split('T')[0];
   const isPast = Boolean(item.date && item.date < todayStr);
 
+  const subStatus = item.submissionStatus || item.submission?.status;
   const statusFromDb = item.participationStatus || 'joined';
-  const isPending = statusFromDb === 'pending_completion_verification' || item.verificationStatus === 'pending' || item.status === 'Pending Verification';
-  const isVerified = statusFromDb === 'completed' || item.verificationStatus === 'verified' || item.status === 'Verified Complete';
+
+  const isPending = subStatus === 'pending' || statusFromDb === 'pending_completion_verification' || item.verificationStatus === 'pending';
+  const isVerified = subStatus === 'approved' || statusFromDb === 'completed' || item.verificationStatus === 'verified';
+  const isRejected = subStatus === 'rejected';
 
   let badgeLabel = 'Saved';
   if (isCommunity) {
     if (isVerified) badgeLabel = 'Verified Complete';
     else if (isPending) badgeLabel = 'Pending Verification';
+    else if (isRejected) badgeLabel = 'Needs Changes';
     else if (isPast) badgeLabel = 'Past Mission';
     else badgeLabel = 'Joined';
   }
@@ -233,6 +257,8 @@ function CleanupCard({ item, onRemove, onView, onOpenEvidenceModal }) {
               ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
               : isPending
               ? 'bg-amber-100 text-amber-800 border-amber-300'
+              : isRejected
+              ? 'bg-rose-100 text-rose-800 border-rose-300 font-extrabold'
               : 'bg-teal-50 text-[#19887F] border-teal-200'
           }`}>
             {badgeLabel}
@@ -263,6 +289,19 @@ function CleanupCard({ item, onRemove, onView, onOpenEvidenceModal }) {
             </span>
           </div>
         </div>
+
+        {/* Display Reviewer Feedback for Rejected Submissions */}
+        {isCommunity && isRejected && (item.reviewNotes || item.submission?.review_notes) && (
+          <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-xs space-y-1">
+            <span className="text-[10px] text-rose-600 font-extrabold uppercase block flex items-center gap-1">
+              <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+              Reviewer Feedback (Needs Changes)
+            </span>
+            <p className="text-ocean-950 font-medium leading-snug italic">
+              "{item.reviewNotes || item.submission?.review_notes}"
+            </p>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="pt-3 border-t border-[#92F1EC] space-y-2">
@@ -300,7 +339,7 @@ function CleanupCard({ item, onRemove, onView, onOpenEvidenceModal }) {
             )}
           </div>
 
-          {/* Submit Completion Evidence button for community missions ONLY */}
+          {/* Submit/Resubmit Completion Evidence button for community missions ONLY */}
           {isCommunity && (
             <button
               onClick={onOpenEvidenceModal}
@@ -309,6 +348,8 @@ function CleanupCard({ item, onRemove, onView, onOpenEvidenceModal }) {
                   ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
                   : isPending
                   ? 'bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300'
+                  : isRejected
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white font-bold animate-pulse'
                   : isPast
                   ? 'bg-[#076DDF] hover:bg-[#3C92FF] text-white font-bold animate-pulse'
                   : 'bg-teal-50 hover:bg-teal-100 text-[#19887F] border border-teal-200'
@@ -320,6 +361,8 @@ function CleanupCard({ item, onRemove, onView, onOpenEvidenceModal }) {
                   ? 'Verified Complete'
                   : isPending
                   ? 'Pending Verification'
+                  : isRejected
+                  ? 'Edit & Resubmit Evidence'
                   : isPast
                   ? 'Submit Completion Evidence'
                   : 'Joined • Active Mission'}
