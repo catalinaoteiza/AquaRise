@@ -93,11 +93,11 @@ export default function CertificateDetailView({ certificate, onBack, onVerifyLin
               <Logo />
             </div>
 
-            <span className="text-xs font-black uppercase tracking-widest text-[#19887F] block">
+            <span className="text-xs font-black uppercase tracking-wider text-[#19887F] block">
               Official Environmental Recognition
             </span>
 
-            <h1 className="text-3xl sm:text-5xl font-black text-ocean-950 font-serif">
+            <h1 className="text-3xl sm:text-5xl font-black text-ocean-950 font-serif tracking-normal">
               Certificate of Appreciation
             </h1>
 
@@ -108,13 +108,13 @@ export default function CertificateDetailView({ certificate, onBack, onVerifyLin
 
           {/* Certificate Body Text */}
           <div className="text-center space-y-6 max-w-2xl mx-auto py-4">
-            <p className="text-sm text-slate-600 font-medium">This certificate is proudly awarded to</p>
+            <p className="text-sm text-slate-600 font-medium tracking-normal">This certificate is proudly awarded to</p>
 
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-ocean-950 font-serif border-b-2 border-[#076DDF] inline-block px-8 py-1">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-ocean-950 font-serif border-b-2 border-[#076DDF] inline-block px-8 py-1 tracking-normal">
               {recipientName}
             </h2>
 
-            <p className="text-sm sm:text-base text-slate-700 font-medium leading-relaxed">
+            <p className="text-sm sm:text-base text-slate-700 font-medium leading-relaxed tracking-normal">
               in recognition of verified volunteer dedication and active environmental contribution during the{' '}
               <strong className="text-ocean-950 font-bold">{missionTitle}</strong> protecting local waterbodies at{' '}
               <strong className="text-[#19887F] font-bold">{waterbody}</strong> ({locationText}).
@@ -124,17 +124,17 @@ export default function CertificateDetailView({ certificate, onBack, onVerifyLin
           {/* Key Certificate Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-2xl mx-auto p-4 rounded-2xl bg-[#DAF6F6]/40 border border-[#92F1EC] text-center text-xs">
             <div className="space-y-0.5">
-              <span className="text-[10px] text-slate-500 uppercase font-bold block">Verified Time</span>
+              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Verified Time</span>
               <strong className="text-sm text-[#19887F] font-extrabold block">{timeText}</strong>
             </div>
 
             <div className="space-y-0.5">
-              <span className="text-[10px] text-slate-500 uppercase font-bold block">Cleanup Date</span>
+              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Cleanup Date</span>
               <strong className="text-sm text-ocean-950 font-extrabold block">{eventDateText}</strong>
             </div>
 
             <div className="col-span-2 sm:col-span-1 space-y-0.5">
-              <span className="text-[10px] text-slate-500 uppercase font-bold block">Issued Date</span>
+              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Issued Date</span>
               <strong className="text-sm text-slate-800 font-extrabold block">{issuedDateText}</strong>
             </div>
           </div>
@@ -142,8 +142,8 @@ export default function CertificateDetailView({ certificate, onBack, onVerifyLin
           {/* Certificate Footer Verification Info */}
           <div className="pt-6 border-t border-teal-200 flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-slate-600">
             <div className="space-y-1 text-center sm:text-left">
-              <span className="text-[10px] text-slate-400 uppercase font-bold block">Public Certificate Code</span>
-              <strong className="text-sm font-mono text-ocean-950 font-extrabold tracking-wider block">{certCode}</strong>
+              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Public Certificate Code</span>
+              <strong className="text-sm font-mono text-ocean-950 font-extrabold tracking-normal block">{certCode}</strong>
               <button
                 onClick={() => onVerifyLinkClick && onVerifyLinkClick(certCode)}
                 className="no-print text-[#076DDF] hover:underline font-bold text-[11px] inline-flex items-center gap-1 mt-1"
@@ -153,7 +153,7 @@ export default function CertificateDetailView({ certificate, onBack, onVerifyLin
               </button>
             </div>
 
-            <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-teal-50 border border-teal-200 text-teal-800 font-bold text-xs">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-teal-50 border border-teal-200 text-teal-800 font-bold text-xs tracking-normal">
               <ShieldCheck className="w-5 h-5 text-[#19887F]" />
               <span>Verified by AquaRise</span>
             </div>

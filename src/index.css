@@ -181,16 +181,17 @@
 
   @page {
     size: A4 landscape;
-    margin: 8mm;
+    margin: 0;
   }
 
-  html, body, #root {
+  html, body, #root, main, div, .certificate-page-view {
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
     height: auto !important;
     overflow: visible !important;
     background: #ffffff !important;
+    background-color: #ffffff !important;
     color: #071325 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -203,19 +204,23 @@
   .certificate-page-view {
     padding: 0 !important;
     margin: 0 !important;
-    min-height: auto !important;
-    height: auto !important;
-    width: 100% !important;
+    min-height: 0 !important;
+    height: 100vh !important;
+    width: 100vw !important;
     background: #ffffff !important;
+    background-color: #ffffff !important;
     box-shadow: none !important;
-    display: block !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }
 
   .printable-certificate {
-    width: 100% !important;
+    width: 275mm !important;
     max-width: 275mm !important;
+    height: 190mm !important;
     max-height: 190mm !important;
     margin: 0 auto !important;
     padding: 8mm 14mm !important;
