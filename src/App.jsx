@@ -284,7 +284,7 @@ function AquaRiseApp() {
     }
 
     try {
-      const res = await createCommunityMission(user.id, missionPayload);
+      const res = await createCommunityMission(missionPayload, user.id);
       if (res.error) {
         showToast(res.error, 'error');
         return res;

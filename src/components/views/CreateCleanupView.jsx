@@ -110,6 +110,11 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onCrea
       return;
     }
 
+    if (!formData.date || !String(formData.date).trim()) {
+      setDateError('Please select an event date.');
+      return;
+    }
+
     // Strict future/today date and time validation
     if (formData.date < todayStr) {
       setDateError('Cleanup date and time must be now or in the future.');
@@ -141,6 +146,8 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onCrea
 
     const currentOrganizerName = safeProfile.name || safeProfile.displayName || safeProfile.fullName || formData.organizerName.trim() || 'AquaRise Guardian';
 
+    const cleanDateStr = String(formData.date).trim();
+
     const newMission = {
       title: formData.title.trim() || `${formData.waterbodyName} Cleanup`,
       name: formData.title.trim() || `${formData.waterbodyName} Cleanup`,
@@ -149,7 +156,9 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onCrea
       meetingLocation: formData.meetingLocation.trim() || 'Main Entrance / Public Access',
       country: formData.country.trim(),
       city: formData.city.trim(),
-      date: formData.date,
+      date: cleanDateStr,
+      eventDate: cleanDateStr,
+      event_date: cleanDateStr,
       startTime: formattedTime,
       rawStartTime: formData.startTime,
       estimatedDuration: formData.estimatedDuration.trim() || 'Approx. 2 hours',

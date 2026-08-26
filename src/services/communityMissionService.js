@@ -189,9 +189,20 @@ export async function fetchCommunityMissions() {
  * Validates authenticated Guardian permission against live Supabase auth session & profiles row.
  * Organizers do NOT auto-join as participants. Participant count starts at 0.
  */
-export async function createCommunityMission(missionData, callerUserId = null) {
+export async function createCommunityMission(arg1, arg2 = null) {
   if (!isSupabaseConfigured) {
     return { mission: null, error: 'Supabase environment is not configured.' };
+  }
+
+  let missionData;
+  let callerUserId;
+
+  if (typeof arg1 === 'string') {
+    callerUserId = arg1;
+    missionData = arg2 || {};
+  } else {
+    missionData = arg1 || {};
+    callerUserId = arg2;
   }
 
   try {
@@ -200,7 +211,7 @@ export async function createCommunityMission(missionData, callerUserId = null) {
     const authUser = session?.user;
 
     const hasSession = Boolean(session && authUser);
-    const authUserId = authUser?.id || null;
+    const authUserId = authUser?.id || callerUserId || null;
 
     if (!hasSession || !authUserId) {
       console.warn('[AquaRise Stage7B LIVE PRE-INSERT ABORTED] No active Supabase Auth session.');
@@ -235,9 +246,22 @@ export async function createCommunityMission(missionData, callerUserId = null) {
       return { mission: null, error: 'Only active AquaRise Guardians can create community cleanup missions.' };
     }
 
+    // Extract Event Date (event_date, eventDate, date, cleanupDate)
+    const rawEventDate =
+      missionData.event_date ||
+      missionData.eventDate ||
+      missionData.date ||
+      missionData.cleanupDate;
+
+    const cleanEventDate = rawEventDate ? String(rawEventDate).trim() : null;
+
+    if (!cleanEventDate) {
+      return { mission: null, error: 'Please select an event date.' };
+    }
+
     const postgresStartTime = formatTimeToPostgres(missionData.startTime || missionData.rawStartTime);
 
-    // 5. Build payload strictly from auth session ID
+    // 5. Build payload strictly with explicit event_date mapping
     const payload = {
       organizer_id: authUserId,
       title: (missionData.title || missionData.name || '').trim(),
@@ -251,7 +275,7 @@ export async function createCommunityMission(missionData, callerUserId = null) {
       meeting_location: (missionData.meetingLocation || '').trim() || null,
       latitude: missionData.latitude || null,
       longitude: missionData.longitude || null,
-      event_date: missionData.date,
+      event_date: cleanEventDate,
       start_time: postgresStartTime,
       duration_minutes: missionData.durationMinutes || 120,
       max_capacity: parseInt(missionData.capacity || missionData.maxCapacity, 10) || 25,
