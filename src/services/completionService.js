@@ -257,6 +257,9 @@ export async function getPendingCompletionSubmissions(filterStatus = 'pending') 
   if (!isSupabaseConfigured) return [];
 
   try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const currentUserId = sessionData?.session?.user?.id;
+
     let query = supabase
       .from('mission_completion_submissions')
       .select(`
@@ -277,7 +280,14 @@ export async function getPendingCompletionSubmissions(filterStatus = 'pending') 
       return [];
     }
 
-    return data || [];
+    const rawList = data || [];
+
+    // Filter out self-submissions: Authorized reviewers review OTHER participants only
+    if (currentUserId) {
+      return rawList.filter((sub) => sub.user_id !== currentUserId);
+    }
+
+    return rawList;
   } catch (err) {
     console.error('[AquaRise Reviewer] Exception fetching submissions:', err);
     return [];
