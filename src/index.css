@@ -184,7 +184,7 @@
     margin: 0;
   }
 
-  html, body, #root, main, div, .certificate-page-view {
+  html, body, #root, main, .certificate-page-view {
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
@@ -231,6 +231,47 @@
     border-radius: 0 !important;
     box-shadow: none !important;
     background: #ffffff !important;
+  }
+
+  /* Specific Certificate Logo Sizing for Print */
+  .printable-certificate .certificate-logo,
+  .printable-certificate [data-certificate-logo] {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: auto !important;
+    max-width: 220px !important;
+    height: auto !important;
+    margin: 0 auto !important;
+  }
+
+  .printable-certificate .certificate-logo div,
+  .printable-certificate [data-certificate-logo] div {
+    width: auto !important;
+    height: auto !important;
+    max-width: none !important;
+  }
+
+  .printable-certificate .certificate-logo-icon {
+    width: 2rem !important;
+    height: 2rem !important;
+    min-width: 2rem !important;
+    min-height: 2rem !important;
+    max-width: 2rem !important;
+    max-height: 2rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  .printable-certificate .certificate-logo-icon svg {
+    width: 1.2rem !important;
+    height: 1.2rem !important;
+    max-width: 1.2rem !important;
+    max-height: 1.2rem !important;
+    display: block !important;
   }
 
   * {

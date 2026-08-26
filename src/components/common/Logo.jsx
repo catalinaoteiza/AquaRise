@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Logo({ size = 'md', className = '' }) {
+export default function Logo({ size = 'md', className = '', variant = 'dark' }) {
   const iconSizes = {
     sm: 'w-6 h-6',
     md: 'w-8 h-8',
@@ -15,9 +15,11 @@ export default function Logo({ size = 'md', className = '' }) {
     xl: 'text-3xl',
   };
 
+  const isLight = variant === 'light';
+
   return (
-    <div className={`inline-flex items-center gap-2.5 group cursor-pointer ${className}`}>
-      <div className={`relative flex items-center justify-center ${iconSizes[size]} rounded-xl bg-gradient-to-tr from-ocean-600 via-aqua-500 to-emerald shadow-lg shadow-aqua-500/20 group-hover:shadow-aqua-500/40 transition-all duration-300 group-hover:scale-105`}>
+    <div className={`inline-flex items-center gap-2.5 group cursor-pointer certificate-logo ${className}`} data-certificate-logo="true">
+      <div className={`relative flex items-center justify-center ${iconSizes[size]} rounded-xl bg-gradient-to-tr from-ocean-600 via-aqua-500 to-emerald shadow-lg shadow-aqua-500/20 group-hover:shadow-aqua-500/40 transition-all duration-300 group-hover:scale-105 certificate-logo-icon shrink-0`}>
         {/* Water Droplet + Rising Wave SVG */}
         <svg
           viewBox="0 0 24 24"
@@ -30,14 +32,14 @@ export default function Logo({ size = 'md', className = '' }) {
           <path d="M7 16.5c1.5 1 3.5 1 5 0s3.5-1 5 0" />
         </svg>
         {/* Subtle cyan glow dot */}
-        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-aqua-300 animate-ping opacity-75"></span>
+        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-aqua-300 animate-ping opacity-75 no-print"></span>
       </div>
-      <div className="flex flex-col">
-        <span className={`font-extrabold tracking-tight ${textSizes[size]} text-white flex items-center gap-0.5`}>
-          Aqua<span className="aqua-gradient-text">Rise</span>
+      <div className="flex flex-col text-left">
+        <span className={`font-extrabold tracking-tight ${textSizes[size]} ${isLight ? 'text-ocean-950' : 'text-white'} flex items-center gap-0.5`}>
+          Aqua<span className={isLight ? 'text-[#19887F]' : 'aqua-gradient-text'}>Rise</span>
         </span>
         {size !== 'sm' && (
-          <span className="text-[10px] font-semibold tracking-widest text-aqua-400/80 uppercase -mt-1">
+          <span className={`text-[10px] font-semibold tracking-widest uppercase -mt-1 ${isLight ? 'text-[#19887F]' : 'text-aqua-400/80'}`}>
             Guardian Network
           </span>
         )}
