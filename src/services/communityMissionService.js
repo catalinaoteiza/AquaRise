@@ -368,11 +368,17 @@ export async function fetchUserJoinedMissionIds(userId) {
  * Source of truth: public.mission_participants for auth.uid().
  */
 export async function fetchUserJoinedMissionsDirect(userId) {
-  if (!userId || userId === 'guest-user' || userId === 'local-user' || !isSupabaseConfigured) {
-    return [];
-  }
+  if (!isSupabaseConfigured) return [];
 
   try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const sessionUser = sessionData?.session?.user;
+    const targetUserId = sessionUser?.id || userId;
+
+    if (!targetUserId || targetUserId === 'guest-user' || targetUserId === 'local-user') {
+      return [];
+    }
+
     const { data: partRows, error: partErr } = await supabase
       .from('mission_participants')
       .select(`
@@ -380,9 +386,9 @@ export async function fetchUserJoinedMissionsDirect(userId) {
         user_id,
         joined_at,
         participation_status,
-        community_missions (*)
+        community_missions!mission_id (*)
       `)
-      .eq('user_id', userId);
+      .eq('user_id', targetUserId);
 
     if (partErr) {
       console.error('[AquaRise Missions] Error fetching direct user participations:', partErr.message);

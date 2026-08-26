@@ -45,6 +45,7 @@ import {
   fetchCommunityMissions,
   createCommunityMission,
   fetchUserJoinedMissionIds,
+  fetchUserJoinedMissionsDirect,
   joinCommunityMission,
   leaveCommunityMission
 } from './services/communityMissionService.js';
@@ -121,6 +122,7 @@ function AquaRiseApp() {
   // Shared Supabase Community Missions & Joined IDs (Stage 7B)
   const [communityMissions, setCommunityMissions] = useState([]);
   const [joinedMissionIds, setJoinedMissionIds] = useState([]);
+  const [realUserParticipations, setRealUserParticipations] = useState([]);
   const [loadingMissions, setLoadingMissions] = useState(true);
 
   const loadPollutionReports = async () => {
@@ -150,13 +152,15 @@ function AquaRiseApp() {
   const loadUserJoinedMissions = async () => {
     if (!user || !user.id) {
       setJoinedMissionIds([]);
+      setRealUserParticipations([]);
       return;
     }
     try {
-      const joined = await fetchUserJoinedMissionIds(user.id);
-      setJoinedMissionIds(joined);
+      const directMissions = await fetchUserJoinedMissionsDirect(user.id);
+      setRealUserParticipations(directMissions);
+      setJoinedMissionIds(directMissions.map((m) => m.id));
     } catch (err) {
-      console.error('[AquaRise App] Error fetching joined mission IDs:', err);
+      console.error('[AquaRise App] Error fetching joined missions:', err);
     }
   };
 
@@ -534,7 +538,7 @@ function AquaRiseApp() {
             profile={profile}
             joinedMissionIds={joinedMissionIds}
             missions={communityMissions}
-            participations={participations}
+            participations={realUserParticipations.length > 0 ? realUserParticipations : participations}
             certificates={realCertificates.length > 0 ? realCertificates : certificates}
             onOpenAuth={() => setIsAuthModalOpen(true)}
             onOpenEditProfile={() => setIsEditProfileOpen(true)}
