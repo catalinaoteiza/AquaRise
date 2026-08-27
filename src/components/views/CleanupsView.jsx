@@ -381,7 +381,7 @@ export default function CleanupsView({
                     {/* Image Banner */}
                     <div className="relative h-48 w-full overflow-hidden bg-teal-50">
                       <img
-                        src={mission.image || mission.bannerImage || 'https://images.unsplash.com/photo-1621451537084-482c73073a0f?auto=format&fit=crop&q=80&w=800'}
+                        src={mission.bannerPhoto || mission.image || mission.bannerImage}
                         alt={mission.title || mission.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />

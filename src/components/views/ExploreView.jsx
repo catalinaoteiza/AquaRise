@@ -333,7 +333,7 @@ export default function ExploreView({
                       {/* Image Header */}
                       <div className="relative h-44 rounded-2xl overflow-hidden bg-slate-100">
                         <img
-                          src={item.image || item.bannerPhoto || 'https://images.unsplash.com/photo-1621451537084-482c73073a0f?auto=format&fit=crop&q=80&w=800'}
+                          src={item.bannerPhoto || item.image}
                           alt={item.title || item.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
