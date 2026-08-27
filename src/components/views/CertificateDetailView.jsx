@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Printer, Copy, CheckCircle2, ArrowLeft, ShieldCheck, QrCode, Award, ExternalLink, Calendar, MapPin, Clock, Trash2, Star } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Printer, Copy, ArrowLeft, ShieldCheck, ExternalLink, Loader2 } from 'lucide-react';
+import { getPublicCertificate } from '../../services/completionService.js';
 import Logo from '../common/Logo';
 
 function formatCertificateDate(dateInput) {
@@ -19,17 +20,73 @@ function formatCertificateDate(dateInput) {
   }
 }
 
-export default function CertificateDetailView({ certificate, onBack, onVerifyLinkClick }) {
+export default function CertificateDetailView({ certificate, certificateCode, onBack, onVerifyLinkClick }) {
   const [copied, setCopied] = useState(false);
+  const [certData, setCertData] = useState(certificate || null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
-  if (!certificate) {
+  const rawCode = certificateCode || certificate?.certificate_code || certificate?.certificateCode;
+  const targetCode = rawCode && typeof rawCode === 'string' && rawCode.trim().toUpperCase().startsWith('AQR-')
+    ? rawCode.trim().toUpperCase()
+    : null;
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadRealCertificate() {
+      if (certificate && certificate.certificate_code && certificate.recipient_name && certificate.mission_title) {
+        setCertData(certificate);
+        setIsLoading(false);
+        setLoadError(false);
+        return;
+      }
+
+      if (!targetCode) {
+        setLoadError(true);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setLoadError(false);
+
+      const res = await getPublicCertificate(targetCode);
+      if (isMounted) {
+        if (res && res.found) {
+          setCertData(res);
+          setLoadError(false);
+        } else {
+          setCertData(null);
+          setLoadError(true);
+        }
+        setIsLoading(false);
+      }
+    }
+
+    loadRealCertificate();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [certificate, targetCode]);
+
+  if (isLoading) {
     return (
       <div className="bg-[#DAF6F6] min-h-screen pt-32 pb-20 max-w-4xl mx-auto px-4 text-center space-y-4">
-        <h1 className="text-2xl font-bold text-ocean-950">Certificate Not Found</h1>
-        <p className="text-sm text-slate-600 font-medium">We could not locate this certificate record.</p>
+        <Loader2 className="w-8 h-8 text-[#076DDF] animate-spin mx-auto" />
+        <p className="text-sm text-slate-600 font-bold">Loading official certificate from AquaRise network...</p>
+      </div>
+    );
+  }
+
+  if (loadError || !certData || !certData.certificate_code || !certData.recipient_name || !certData.mission_title) {
+    return (
+      <div className="bg-[#DAF6F6] min-h-screen pt-32 pb-20 max-w-4xl mx-auto px-4 text-center space-y-4">
+        <h1 className="text-2xl font-bold text-ocean-950">Certificate could not be loaded</h1>
+        <p className="text-sm text-slate-600 font-medium">We could not locate an official AquaRise certificate record for this request.</p>
         <button
           onClick={onBack}
-          className="px-5 py-2.5 rounded-full bg-[#076DDF] text-white font-bold text-xs shadow-md"
+          className="px-5 py-2.5 rounded-full bg-[#076DDF] text-white font-bold text-xs shadow-md cursor-pointer"
         >
           Return to My Impact
         </button>
@@ -37,23 +94,23 @@ export default function CertificateDetailView({ certificate, onBack, onVerifyLin
     );
   }
 
-  const recipientName = certificate.recipient_name || certificate.recipientName || certificate.guardianName || 'AquaRise Guardian';
-  const certCode = certificate.certificate_code || certificate.certificateCode || certificate.certificateId || '';
-  const missionTitle = certificate.mission_title || certificate.missionTitle || 'Community Cleanup Mission';
-  const waterbody = certificate.waterbody_name || certificate.waterbodyName || '';
-  const locationText = [certificate.city, certificate.region, certificate.country].filter(Boolean).join(', ') || certificate.location || '';
+  const recipientName = certData.recipient_name;
+  const certCode = certData.certificate_code;
+  const missionTitle = certData.mission_title;
+  const waterbody = certData.waterbody_name || '';
+  const locationText = [certData.city, certData.region, certData.country].filter(Boolean).join(', ') || certData.location || '';
 
-  const volunteerMins = certificate.volunteer_minutes ?? (certificate.volunteerHours ? Math.round(certificate.volunteerHours * 60) : 0);
+  const volunteerMins = certData.volunteer_minutes || 0;
   const hoursDisplay = Math.floor(volunteerMins / 60);
   const minsDisplay = volunteerMins % 60;
   const timeText = volunteerMins > 0
     ? (hoursDisplay > 0
         ? `${hoursDisplay} hr${hoursDisplay > 1 ? 's' : ''}${minsDisplay > 0 ? ` ${minsDisplay} min` : ''}`
         : `${minsDisplay} min`)
-    : 'Verified Volunteer Contribution';
+    : '';
 
-  const issuedDateText = formatCertificateDate(certificate.issued_at || certificate.issuedDate) || 'Verified';
-  const eventDateText = formatCertificateDate(certificate.event_date || certificate.eventDate || certificate.issued_at) || issuedDateText;
+  const issuedDateText = formatCertificateDate(certData.issued_at);
+  const eventDateText = formatCertificateDate(certData.event_date) || issuedDateText;
 
   const handlePrint = () => {
     window.print();
@@ -70,7 +127,7 @@ export default function CertificateDetailView({ certificate, onBack, onVerifyLin
     <div className="bg-[#DAF6F6] min-h-screen certificate-page-view pt-28 pb-20">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 animate-fadeIn">
         
-        {/* Top Action Bar (Screen Only - Hidden in Print via .no-print) */}
+        {/* Top Action Bar */}
         <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-3xl border border-[#92F1EC] shadow-md">
           <button
             onClick={onBack}
@@ -102,13 +159,11 @@ export default function CertificateDetailView({ certificate, onBack, onVerifyLin
         {/* Printable Official Certificate Document Card */}
         <div className="printable-certificate bg-white p-8 sm:p-14 rounded-3xl border-4 border-[#35AEAC] shadow-2xl relative space-y-8 overflow-hidden">
           
-          {/* Certificate Frame Accents */}
           <div className="absolute top-3 left-3 w-8 h-8 border-t-2 border-l-2 border-[#19887F]"></div>
           <div className="absolute top-3 right-3 w-8 h-8 border-t-2 border-r-2 border-[#19887F]"></div>
           <div className="absolute bottom-3 left-3 w-8 h-8 border-b-2 border-l-2 border-[#19887F]"></div>
           <div className="absolute bottom-3 right-3 w-8 h-8 border-b-2 border-r-2 border-[#19887F]"></div>
 
-          {/* Certificate Header */}
           <div className="text-center space-y-3 border-b border-teal-200 pb-6">
             <div className="flex justify-center">
               <img
@@ -131,7 +186,6 @@ export default function CertificateDetailView({ certificate, onBack, onVerifyLin
             </p>
           </div>
 
-          {/* Certificate Body Text */}
           <div className="text-center space-y-6 max-w-2xl mx-auto py-4">
             <p className="text-sm text-slate-600 font-medium tracking-normal">This certificate is proudly awarded to</p>
 
@@ -154,20 +208,26 @@ export default function CertificateDetailView({ certificate, onBack, onVerifyLin
 
           {/* Key Certificate Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-2xl mx-auto p-4 rounded-2xl bg-[#DAF6F6]/40 border border-[#92F1EC] text-center text-xs">
-            <div className="space-y-0.5">
-              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Verified Time</span>
-              <strong className="text-sm text-[#19887F] font-extrabold block">{timeText}</strong>
-            </div>
+            {timeText ? (
+              <div className="space-y-0.5">
+                <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Verified Time</span>
+                <strong className="text-sm text-[#19887F] font-extrabold block">{timeText}</strong>
+              </div>
+            ) : null}
 
-            <div className="space-y-0.5">
-              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Cleanup Date</span>
-              <strong className="text-sm text-ocean-950 font-extrabold block">{eventDateText}</strong>
-            </div>
+            {eventDateText ? (
+              <div className="space-y-0.5">
+                <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Cleanup Date</span>
+                <strong className="text-sm text-ocean-950 font-extrabold block">{eventDateText}</strong>
+              </div>
+            ) : null}
 
-            <div className="col-span-2 sm:col-span-1 space-y-0.5">
-              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Issued Date</span>
-              <strong className="text-sm text-slate-800 font-extrabold block">{issuedDateText}</strong>
-            </div>
+            {issuedDateText ? (
+              <div className="col-span-2 sm:col-span-1 space-y-0.5">
+                <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Issued Date</span>
+                <strong className="text-sm text-slate-800 font-extrabold block">{issuedDateText}</strong>
+              </div>
+            ) : null}
           </div>
 
           {/* Certificate Footer Verification Info */}
@@ -177,7 +237,7 @@ export default function CertificateDetailView({ certificate, onBack, onVerifyLin
               <strong className="text-sm font-mono text-ocean-950 font-extrabold tracking-normal block">{certCode}</strong>
               <button
                 onClick={() => onVerifyLinkClick && onVerifyLinkClick(certCode)}
-                className="no-print text-[#076DDF] hover:underline font-bold text-[11px] inline-flex items-center gap-1 mt-1"
+                className="no-print text-[#076DDF] hover:underline font-bold text-[11px] inline-flex items-center gap-1 mt-1 cursor-pointer"
               >
                 <span>Verify Online</span>
                 <ExternalLink className="w-3 h-3" />

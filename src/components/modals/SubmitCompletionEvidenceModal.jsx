@@ -299,7 +299,7 @@ export default function SubmitCompletionEvidenceModal({
               {onViewCertificate && (
                 <button
                   type="button"
-                  onClick={onViewCertificate}
+                  onClick={() => onViewCertificate && onViewCertificate(submission)}
                   className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-sm flex items-center gap-1 transition-all cursor-pointer"
                 >
                   <Award className="w-3.5 h-3.5" />

@@ -383,8 +383,32 @@ function AquaRiseApp() {
     }
   };
 
-  const handleViewCertificate = (cert) => {
-    setSelectedCertificate(cert);
+  const handleViewCertificate = async (certOrCode) => {
+    if (typeof certOrCode === 'string') {
+      const trimmed = certOrCode.trim();
+      if (trimmed.toUpperCase().startsWith('AQR-')) {
+        setSelectedCertificate({ certificate_code: trimmed.toUpperCase() });
+      } else {
+        const fresh = await getMyCertificates();
+        const match = (fresh || []).find((c) => c.id === trimmed || c.submission_id === trimmed || c.mission_id === trimmed);
+        setSelectedCertificate(match || null);
+      }
+    } else if (certOrCode && typeof certOrCode === 'object' && certOrCode.certificate_code) {
+      setSelectedCertificate(certOrCode);
+    } else if (certOrCode && typeof certOrCode === 'object' && (certOrCode.mission_id || certOrCode.id || certOrCode.submission_id)) {
+      const subId = certOrCode.submission_id || certOrCode.id;
+      const missId = certOrCode.mission_id;
+      const match = (realCertificates || []).find((c) => (subId && c.submission_id === subId) || (missId && c.mission_id === missId));
+      if (match) {
+        setSelectedCertificate(match);
+      } else {
+        const fresh = await getMyCertificates();
+        const freshMatch = (fresh || []).find((c) => (subId && c.submission_id === subId) || (missId && c.mission_id === missId));
+        setSelectedCertificate(freshMatch || null);
+      }
+    } else {
+      setSelectedCertificate(null);
+    }
     setActiveTab('certificate');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
