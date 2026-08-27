@@ -60,6 +60,7 @@ export default function MissionDetailView({
   const dateStatus = getCleanupDateStatus(mission);
   const isPastMission = dateStatus === 'Past';
   const isVerified = mission.verificationStatus === 'verified' || mission.status === 'Verified Complete';
+  const isOrganizer = Boolean(user?.id && (mission.organizerId === user.id || mission.organizer_id === user.id));
 
   const formattedDate = formatCleanupDate(mission.date);
   const formattedStartTime = formatCleanupStartTime(mission.startTime || mission.time);
@@ -91,7 +92,7 @@ export default function MissionDetailView({
 
             {/* Source Type Badge */}
             <span className="text-xs font-black px-3.5 py-1 rounded-full bg-[#19887F] text-white shadow-sm uppercase tracking-wider">
-              AquaRise Mission
+              {isOrganizer ? 'Organized by You' : 'AquaRise Mission'}
             </span>
             
             {/* Verification Status Badge */}
@@ -114,118 +115,125 @@ export default function MissionDetailView({
               <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white shadow-lg">
                 <Droplets className="w-9 h-9" />
               </div>
-              <div className="space-y-1 max-w-lg">
-                <span className="text-xs font-black tracking-widest uppercase bg-white/20 px-3 py-1 rounded-full border border-white/30 inline-block">
-                  Community Cleanup Location
-                </span>
-                <h2 className="text-2xl sm:text-3xl font-black">{mission.waterbodyName || mission.title}</h2>
-              </div>
+              <h2 className="text-2xl font-black">{mission.title}</h2>
             </div>
           )}
         </div>
 
-        {/* Main Header & Schedule Details (Section 2) */}
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#92F1EC] shadow-md space-y-6">
+        {/* Grid Layout: Main Details & Sidebar */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Main Info Area */}
+          <div className="lg:col-span-8 space-y-8 bg-white p-6 sm:p-8 rounded-3xl border border-[#92F1EC] shadow-md">
             
-            <div className="lg:col-span-8 space-y-5">
-              <div className="space-y-2">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-[#19887F] bg-teal-50 px-3 py-0.5 rounded-full border border-teal-200 inline-block">
-                  {mission.waterbodyName}
-                </span>
-                <h1 className="text-3xl sm:text-4xl font-black text-ocean-950">{mission.title}</h1>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-[#19887F]">
+                <MapPin className="w-4 h-4 text-[#19887F] shrink-0" />
+                <span>{mission.waterbodyName} • {mission.location || `${mission.city || ''}, ${mission.country || ''}`}</span>
               </div>
 
-              {/* Explicit Schedule Details Panel (Section 2) */}
-              <div className="p-4 rounded-2xl bg-[#DAF6F6]/40 border border-[#92F1EC] grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                <div>
-                  <span className="text-[10px] text-slate-500 uppercase font-bold block mb-1">Date</span>
-                  <div className="font-bold text-ocean-950 flex items-center gap-1.5 text-sm">
-                    <Calendar className="w-4 h-4 text-[#076DDF]" />
-                    <span>{formattedDate}</span>
-                  </div>
-                </div>
+              <h1 className="text-2xl sm:text-4xl font-black text-ocean-950 leading-tight">
+                {mission.title}
+              </h1>
 
-                <div>
-                  <span className="text-[10px] text-slate-500 uppercase font-bold block mb-1">Start Time</span>
-                  <div className="font-bold text-ocean-950 flex items-center gap-1.5 text-sm">
-                    <Clock className="w-4 h-4 text-[#19887F]" />
-                    <span>{formattedStartTime}</span>
-                  </div>
-                </div>
-
-                <div>
-                  <span className="text-[10px] text-slate-500 uppercase font-bold block mb-1">Estimated Duration</span>
-                  <div className="font-bold text-ocean-950 flex items-center gap-1.5 text-sm">
-                    <Clock className="w-4 h-4 text-emerald-600" />
-                    <span>{formattedDuration}</span>
-                  </div>
-                </div>
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
+                <ShieldCheck className="w-4 h-4 text-[#19887F]" />
+                <span>Organized by: <strong className="text-ocean-950">{mission.organizer || 'AquaRise Guardian'}</strong></span>
               </div>
-
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Description</span>
-                <p className="text-sm text-slate-700 leading-relaxed font-medium">
-                  {mission.description}
-                </p>
-              </div>
-
-              {mission.meetingLocation && (
-                <div className="p-3.5 rounded-2xl bg-teal-50 border border-teal-200 text-xs text-ocean-950 font-medium">
-                  <strong>Meeting Point:</strong> {mission.meetingLocation}
-                </div>
-              )}
             </div>
 
-            {/* Participation Action Sidebar Card */}
-            <div className="lg:col-span-4 p-6 rounded-2xl bg-[#DAF6F6]/40 border border-[#92F1EC] space-y-5">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs font-bold text-ocean-950">
-                  <span>Guardians Joined</span>
-                  <span className="text-[#19887F] font-extrabold">{currentCount} / {mission.volunteerCapacity || mission.maxCapacity || 50}</span>
-                </div>
-                <div className="w-full h-2.5 rounded-full bg-slate-200 overflow-hidden">
-                  <div
-                    className="h-full bg-[#19887F] rounded-full"
-                    style={{ width: `${Math.min(100, (currentCount / (mission.volunteerCapacity || mission.maxCapacity || 50)) * 100)}%` }}
-                  ></div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-[#92F1EC]">
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase font-bold block mb-1">Event Date</span>
+                <div className="font-bold text-ocean-950 flex items-center gap-1.5 text-sm">
+                  <Calendar className="w-4 h-4 text-[#076DDF]" />
+                  <span>{formattedDate}</span>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                {isPastMission && !isJoined ? (
-                  <button
-                    type="button"
-                    disabled
-                    className="w-full py-3 rounded-full font-extrabold text-xs bg-slate-200 text-slate-500 border border-slate-300 cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    <span>Event Ended</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleToggleJoin}
-                    className={`w-full py-3 rounded-full font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                      isJoined
-                        ? 'bg-rose-600 hover:bg-rose-700 text-white'
-                        : 'bg-[#19887F] hover:bg-[#35AEAC] text-white'
-                    }`}
-                  >
-                    <Users className="w-4 h-4" />
-                    <span>{isJoined ? 'Leave Mission' : 'Join Mission'}</span>
-                  </button>
-                )}
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase font-bold block mb-1">Start Time</span>
+                <div className="font-bold text-ocean-950 flex items-center gap-1.5 text-sm">
+                  <Clock className="w-4 h-4 text-[#19887F]" />
+                  <span>{formattedStartTime}</span>
+                </div>
+              </div>
 
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase font-bold block mb-1">Estimated Duration</span>
+                <div className="font-bold text-ocean-950 flex items-center gap-1.5 text-sm">
+                  <Clock className="w-4 h-4 text-emerald-600" />
+                  <span>{formattedDuration}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Description</span>
+              <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                {mission.description}
+              </p>
+            </div>
+
+            {mission.meetingLocation && (
+              <div className="p-3.5 rounded-2xl bg-teal-50 border border-teal-200 text-xs text-ocean-950 font-medium">
+                <strong>Meeting Point:</strong> {mission.meetingLocation}
+              </div>
+            )}
+          </div>
+
+          {/* Participation Action Sidebar Card */}
+          <div className="lg:col-span-4 p-6 rounded-2xl bg-[#DAF6F6]/40 border border-[#92F1EC] space-y-5">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-xs font-bold text-ocean-950">
+                <span>Guardians Joined</span>
+                <span className="text-[#19887F] font-extrabold">{currentCount} / {mission.volunteerCapacity || mission.maxCapacity || 50}</span>
+              </div>
+              <div className="w-full h-2.5 rounded-full bg-slate-200 overflow-hidden">
+                <div
+                  className="h-full bg-[#19887F] rounded-full"
+                  style={{ width: `${Math.min(100, (currentCount / (mission.volunteerCapacity || mission.maxCapacity || 50)) * 100)}%` }}
+                ></div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {isOrganizer ? (
+                <div className="w-full py-3 rounded-full font-extrabold text-xs bg-[#19887F]/10 border border-[#19887F]/30 text-[#19887F] flex items-center justify-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-[#19887F]" />
+                  <span>Organized by You • Mission Reviewer</span>
+                </div>
+              ) : isPastMission && !isJoined ? (
                 <button
                   type="button"
-                  onClick={handleShare}
-                  className="w-full py-2.5 rounded-full bg-white hover:bg-slate-50 text-ocean-950 font-bold text-xs border border-teal-200 shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  disabled
+                  className="w-full py-3 rounded-full font-extrabold text-xs bg-slate-200 text-slate-500 border border-slate-300 cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  <Share2 className="w-4 h-4 text-[#076DDF]" />
-                  <span>{copiedLink ? 'Link Copied!' : 'Share Mission'}</span>
+                  <span>Event Ended</span>
                 </button>
-              </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleToggleJoin}
+                  className={`w-full py-3 rounded-full font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    isJoined
+                      ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                      : 'bg-[#19887F] hover:bg-[#35AEAC] text-white'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  <span>{isJoined ? 'Leave Mission' : 'Join Mission'}</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={handleShare}
+                className="w-full py-2.5 rounded-full bg-white hover:bg-slate-50 text-ocean-950 font-bold text-xs border border-teal-200 shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Share2 className="w-4 h-4 text-[#076DDF]" />
+                <span>{copiedLink ? 'Link Copied!' : 'Share Mission'}</span>
+              </button>
             </div>
 
           </div>

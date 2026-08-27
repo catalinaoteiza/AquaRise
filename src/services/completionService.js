@@ -77,6 +77,20 @@ export async function saveCompletionDraft({ missionId, contribution, volunteerMi
   }
 
   try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const user = sessionData?.session?.user;
+    if (user?.id) {
+      const { data: missionData } = await supabase
+        .from('community_missions')
+        .select('organizer_id')
+        .eq('id', missionId)
+        .maybeSingle();
+
+      if (missionData && missionData.organizer_id === user.id) {
+        return { submissionId: null, error: 'Organizers cannot submit completion evidence for missions they organized.' };
+      }
+    }
+
     const { data, error } = await supabase.rpc('save_completion_draft', {
       p_mission_id: missionId,
       p_contribution: contribution,

@@ -90,7 +90,11 @@ CREATE POLICY "Participants and reviewers can read completion submissions"
   USING (
     auth.uid() IS NOT NULL AND (
       user_id = auth.uid() OR
-      public.is_completion_reviewer() = true
+      public.is_completion_reviewer() = true OR
+      EXISTS (
+        SELECT 1 FROM public.community_missions cm
+        WHERE cm.id = mission_id AND cm.organizer_id = auth.uid()
+      )
     )
   );
 
@@ -115,7 +119,13 @@ CREATE POLICY "Uploaders and reviewers can read evidence photo metadata"
   USING (
     auth.uid() IS NOT NULL AND (
       uploader_id = auth.uid() OR
-      public.is_completion_reviewer() = true
+      public.is_completion_reviewer() = true OR
+      EXISTS (
+        SELECT 1 FROM public.mission_completion_submissions mcs
+        JOIN public.community_missions cm ON cm.id = mcs.mission_id
+        WHERE mcs.id = completion_evidence_photos.submission_id
+          AND cm.organizer_id = auth.uid()
+      )
     )
   );
 
@@ -174,7 +184,7 @@ ON CONFLICT (id) DO UPDATE SET
 
 -- Storage RLS Policies for 'completion-evidence' Bucket
 
--- Policy A: SELECT (Uploaders & Reviewers)
+-- Policy A: SELECT (Uploaders & Reviewers & Mission Organizers)
 DROP POLICY IF EXISTS "Uploaders and reviewers read completion evidence storage" ON storage.objects;
 CREATE POLICY "Uploaders and reviewers read completion evidence storage"
   ON storage.objects FOR SELECT
@@ -182,7 +192,14 @@ CREATE POLICY "Uploaders and reviewers read completion evidence storage"
     bucket_id = 'completion-evidence' AND
     auth.role() = 'authenticated' AND (
       (storage.foldername(name))[1] = auth.uid()::text OR
-      public.is_completion_reviewer() = true
+      public.is_completion_reviewer() = true OR
+      EXISTS (
+        SELECT 1 FROM public.community_missions cm
+        JOIN public.mission_completion_submissions mcs ON mcs.mission_id = cm.id
+        WHERE (storage.foldername(name))[2] IS NOT NULL
+          AND mcs.id::text = (storage.foldername(name))[2]
+          AND cm.organizer_id = auth.uid()
+      )
     )
   );
 
@@ -364,6 +381,11 @@ BEGIN
     RAISE EXCEPTION 'Community mission not found or is not published.';
   END IF;
 
+  -- ORGANIZER RESTRICTION (BUG 2): Organizers cannot submit completion evidence for their own mission
+  IF v_mission.organizer_id = v_user_id THEN
+    RAISE EXCEPTION 'Organizers cannot submit completion evidence for missions they organized.';
+  END IF;
+
   -- Event Completion Eligibility Rule: Must be after event date
   IF v_mission.event_date >= CURRENT_DATE THEN
     RAISE EXCEPTION 'Completion evidence can only be submitted after the cleanup event has taken place.';
@@ -486,6 +508,11 @@ BEGIN
     RAISE EXCEPTION 'Mission completion evidence is not currently eligible for submission.';
   END IF;
 
+  -- ORGANIZER RESTRICTION (BUG 2): Organizers cannot submit completion evidence for their own mission
+  IF v_mission.organizer_id = v_user_id THEN
+    RAISE EXCEPTION 'Organizers cannot submit completion evidence for missions they organized.';
+  END IF;
+
   -- Re-verify joined participation FOR UPDATE
   SELECT * INTO v_participant
   FROM public.mission_participants
@@ -573,11 +600,6 @@ BEGIN
     RAISE EXCEPTION 'You must be signed in to review completion submissions.';
   END IF;
 
-  -- Authorized Reviewer Check
-  IF NOT public.is_completion_reviewer() THEN
-    RAISE EXCEPTION 'Unauthorized: You are not an authorized AquaRise completion reviewer.';
-  END IF;
-
   -- Validate Decision Argument
   IF p_decision NOT IN ('approved', 'rejected') THEN
     RAISE EXCEPTION 'Invalid review decision. Must be "approved" or "rejected".';
@@ -591,6 +613,13 @@ BEGIN
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Completion submission not found.';
+  END IF;
+
+  SELECT * INTO v_mission FROM public.community_missions WHERE id = v_submission.mission_id;
+
+  -- Authorized Reviewer Check (BUG 1): Must be global reviewer OR organizer of this specific mission
+  IF NOT (public.is_completion_reviewer() OR v_mission.organizer_id = v_reviewer_id) THEN
+    RAISE EXCEPTION 'Unauthorized: You are not authorized to review completion submissions for this mission.';
   END IF;
 
   IF v_submission.status <> 'pending' THEN

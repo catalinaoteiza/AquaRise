@@ -24,6 +24,7 @@ export default function MissionDetailModal({
   const isExternal = Boolean(mission.isLiveSourced || mission.external || mission.organizerType === 'External Organization');
   const isJoined = isExternal ? isCleanupParticipating(mission) : joinedMissionIds.includes(mission.id);
   const isPastMission = Boolean(mission.date && mission.date < todayStr);
+  const isOrganizer = Boolean(user?.id && (mission.organizerId === user.id || mission.organizer_id === user.id || (profile?.id && mission.organizerId === profile.id)));
 
   const handleToggleAction = async () => {
     setIsSubmitting(true);
@@ -218,7 +219,12 @@ export default function MissionDetailModal({
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            {isExternal && mission.sourceUrl && mission.sourceUrl !== '#' ? (
+            {isOrganizer ? (
+              <div className="px-5 py-2 rounded-xl text-xs font-extrabold bg-[#19887F]/10 border border-[#19887F]/30 text-[#19887F] flex items-center justify-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-[#19887F]" />
+                <span>Organized by You • Mission Reviewer</span>
+              </div>
+            ) : isExternal && mission.sourceUrl && mission.sourceUrl !== '#' ? (
               <a
                 href={mission.sourceUrl}
                 target="_blank"

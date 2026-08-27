@@ -193,6 +193,7 @@ export default function MyCleanupsView({
                     <CleanupCard
                       key={item.id || item.missionId}
                       item={item}
+                      user={user}
                       onRemove={() => handleRemove(item)}
                       onView={() => onViewMission && onViewMission(item)}
                       onOpenEvidenceModal={() => onOpenEvidenceModal && onOpenEvidenceModal(item)}
@@ -217,6 +218,7 @@ export default function MyCleanupsView({
                     <CleanupCard
                       key={item.id || item.missionId}
                       item={item}
+                      user={user}
                       onRemove={() => handleRemove(item)}
                       onView={() => onViewMission && onViewMission(item)}
                       onOpenEvidenceModal={() => onOpenEvidenceModal && onOpenEvidenceModal(item)}
@@ -234,8 +236,9 @@ export default function MyCleanupsView({
   );
 }
 
-function CleanupCard({ item, onRemove, onView, onOpenEvidenceModal }) {
+function CleanupCard({ item, user, onRemove, onView, onOpenEvidenceModal }) {
   const isCommunity = item.type === 'community' || item.isUserCreated || item.sourceType === 'aquarise_community' || item.organizerType === 'AquaRise Guardian';
+  const isOrganizer = Boolean(user?.id && (item.organizerId === user.id || item.organizer_id === user.id));
   const todayStr = new Date().toISOString().split('T')[0];
   const isPast = Boolean(item.date && item.date < todayStr);
 
@@ -248,7 +251,8 @@ function CleanupCard({ item, onRemove, onView, onOpenEvidenceModal }) {
 
   let badgeLabel = 'Saved';
   if (isCommunity) {
-    if (isVerified) badgeLabel = 'Verified Complete';
+    if (isOrganizer) badgeLabel = 'Mission Organizer';
+    else if (isVerified) badgeLabel = 'Verified Complete';
     else if (isPending) badgeLabel = 'Pending Verification';
     else if (isRejected) badgeLabel = 'Needs Changes';
     else if (isPast) badgeLabel = 'Past Mission';
@@ -265,7 +269,9 @@ function CleanupCard({ item, onRemove, onView, onOpenEvidenceModal }) {
             {isCommunity ? 'AquaRise Mission' : 'External Opportunity'}
           </span>
           <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
-            isVerified
+            isOrganizer
+              ? 'bg-teal-100 text-[#19887F] border-teal-300 font-extrabold'
+              : isVerified
               ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
               : isPending
               ? 'bg-amber-100 text-amber-800 border-amber-300'
@@ -303,7 +309,7 @@ function CleanupCard({ item, onRemove, onView, onOpenEvidenceModal }) {
         </div>
 
         {/* Display Reviewer Feedback for Rejected Submissions */}
-        {isCommunity && isRejected && (item.reviewNotes || item.submission?.review_notes) && (
+        {isCommunity && !isOrganizer && isRejected && (item.reviewNotes || item.submission?.review_notes) && (
           <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-xs space-y-1">
             <span className="text-[10px] text-rose-600 font-extrabold uppercase block flex items-center gap-1">
               <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
@@ -318,18 +324,20 @@ function CleanupCard({ item, onRemove, onView, onOpenEvidenceModal }) {
         {/* Action Buttons */}
         <div className="pt-3 border-t border-[#92F1EC] space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove();
-              }}
-              className="p-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors text-xs font-bold flex items-center gap-1 cursor-pointer"
-              title={isCommunity ? 'Leave Mission' : 'Remove from My Cleanups'}
-            >
-              <Trash2 className="w-4 h-4" />
-              <span className="hidden sm:inline">{isCommunity ? 'Leave Mission' : 'Remove'}</span>
-            </button>
+            {!isOrganizer && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove();
+                }}
+                className="p-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors text-xs font-bold flex items-center gap-1 cursor-pointer"
+                title={isCommunity ? 'Leave Mission' : 'Remove from My Cleanups'}
+              >
+                <Trash2 className="w-4 h-4" />
+                <span className="hidden sm:inline">{isCommunity ? 'Leave Mission' : 'Remove'}</span>
+              </button>
+            )}
 
             {!isCommunity && item.sourceUrl && item.sourceUrl !== '#' ? (
               <a
@@ -344,42 +352,49 @@ function CleanupCard({ item, onRemove, onView, onOpenEvidenceModal }) {
             ) : (
               <button
                 onClick={onView}
-                className="bg-slate-100 hover:bg-slate-200 text-ocean-950 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm transition-all cursor-pointer"
+                className="bg-slate-100 hover:bg-slate-200 text-ocean-950 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm transition-all cursor-pointer ml-auto"
               >
                 <span>View Details</span>
               </button>
             )}
           </div>
 
-          {/* Submit/Resubmit Completion Evidence button for community missions ONLY */}
+          {/* Submit/Resubmit Completion Evidence button for participants ONLY. Organizers show Organizer/Reviewer status */}
           {isCommunity && (
-            <button
-              onClick={onOpenEvidenceModal}
-              className={`w-full py-2.5 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer ${
-                isVerified
-                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                  : isPending
-                  ? 'bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300'
-                  : isRejected
-                  ? 'bg-rose-600 hover:bg-rose-700 text-white font-bold animate-pulse'
-                  : isPast
-                  ? 'bg-[#076DDF] hover:bg-[#3C92FF] text-white font-bold animate-pulse'
-                  : 'bg-teal-50 hover:bg-teal-100 text-[#19887F] border border-teal-200'
-              }`}
-            >
-              <FileCheck className="w-4 h-4" />
-              <span>
-                {isVerified
-                  ? 'Verified Complete'
-                  : isPending
-                  ? 'Pending Verification'
-                  : isRejected
-                  ? 'Edit & Resubmit Evidence'
-                  : isPast
-                  ? 'Submit Completion Evidence'
-                  : 'Joined • Active Mission'}
-              </span>
-            </button>
+            isOrganizer ? (
+              <div className="w-full py-2.5 rounded-xl text-xs font-extrabold bg-[#19887F]/10 border border-[#19887F]/30 text-[#19887F] flex items-center justify-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-[#19887F]" />
+                <span>Mission Organizer & Reviewer</span>
+              </div>
+            ) : (
+              <button
+                onClick={onOpenEvidenceModal}
+                className={`w-full py-2.5 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer ${
+                  isVerified
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    : isPending
+                    ? 'bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300'
+                    : isRejected
+                    ? 'bg-rose-600 hover:bg-rose-700 text-white font-bold animate-pulse'
+                    : isPast
+                    ? 'bg-[#076DDF] hover:bg-[#3C92FF] text-white font-bold animate-pulse'
+                    : 'bg-teal-50 hover:bg-teal-100 text-[#19887F] border border-teal-200'
+                }`}
+              >
+                <FileCheck className="w-4 h-4" />
+                <span>
+                  {isVerified
+                    ? 'Verified Complete'
+                    : isPending
+                    ? 'Pending Verification'
+                    : isRejected
+                    ? 'Edit & Resubmit Evidence'
+                    : isPast
+                    ? 'Submit Completion Evidence'
+                    : 'Joined • Active Mission'}
+                </span>
+              </button>
+            )
           )}
         </div>
       </div>

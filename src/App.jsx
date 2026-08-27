@@ -173,7 +173,11 @@ function AquaRiseApp() {
 
     try {
       const reviewerRes = await isCompletionReviewer();
-      setIsReviewer(reviewerRes);
+      const hasOrganizedMissions = (communityMissions || []).some(
+        (m) => m.organizerId === user.id || m.organizer_id === user.id || (profile?.id && m.organizerId === profile.id)
+      );
+
+      setIsReviewer(Boolean(reviewerRes || hasOrganizedMissions));
 
       const certs = await getMyCertificates();
       setRealCertificates(certs);
@@ -191,7 +195,7 @@ function AquaRiseApp() {
   useEffect(() => {
     loadUserJoinedMissions();
     loadReviewerStatusAndCertificates();
-  }, [user]);
+  }, [user, communityMissions]);
 
   useEffect(() => {
     const syncParticipations = () => {
