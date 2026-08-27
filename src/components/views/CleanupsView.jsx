@@ -1,10 +1,52 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Flag, Calendar, Users, MapPin, ArrowRight, PlusCircle, Compass, Search, ExternalLink, Loader2, RefreshCw, Bookmark, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Flag, Calendar, Users, MapPin, ArrowRight, PlusCircle, Compass, Search, ExternalLink, Loader2, RefreshCw, Bookmark, CheckCircle2, ArrowLeft, Droplets } from 'lucide-react';
 import { discoveryService } from '../../services/discoveryService';
 import { verifyExternalEventEvidence } from '../../services/sourceVerificationLayer';
 import { isCleanupParticipating, joinOrSaveCleanup, leaveOrRemoveCleanup } from '../../services/participationService';
 import { getCleanupDateStatus, formatCleanupDate, formatCleanupStartTime, getSearchableText, deduplicateCleanups } from '../../utils/cleanupUtils.js';
 import { CURATED_VERIFIED_EXTERNAL_EVENTS } from '../../data/curatedVerifiedEvents.js';
+
+function CleanupCardBanner({ mission, isCommunity, isJoined }) {
+  const [imgError, setImgError] = useState(false);
+  const imageUrl = mission.bannerPhoto || mission.image || mission.bannerImage;
+
+  return (
+    <div className="relative h-48 w-full overflow-hidden bg-teal-50">
+      {imageUrl && !imgError ? (
+        <img
+          src={imageUrl}
+          alt={mission.title || mission.name}
+          onError={() => setImgError(true)}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        />
+      ) : (
+        <div className="w-full h-full bg-gradient-to-br from-[#19887F] via-[#35AEAC] to-[#076DDF] p-6 text-white flex flex-col items-center justify-center text-center space-y-2 group-hover:scale-105 transition-transform duration-300">
+          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white shadow-sm">
+            <Droplets className="w-6 h-6" />
+          </div>
+          <span className="text-xs font-black line-clamp-1 opacity-90 px-4">
+            {mission.waterbodyName || mission.title || mission.name}
+          </span>
+        </div>
+      )}
+
+      <div className="absolute top-3 left-3">
+        <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full text-white shadow-sm ${
+          isCommunity ? 'bg-[#19887F]' : 'bg-[#076DDF]'
+        }`}>
+          {isCommunity ? 'AquaRise Mission' : 'External Opportunity'}
+        </span>
+      </div>
+
+      {isJoined && (
+        <div className="absolute top-3 right-3 bg-emerald-500 text-white text-[10px] font-black uppercase px-3 py-1 rounded-full shadow-md flex items-center gap-1">
+          <CheckCircle2 className="w-3 h-3 text-white" />
+          <span>Joined</span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function CleanupsView({
   waterbodies = [],
@@ -378,28 +420,7 @@ export default function CleanupsView({
                     onClick={() => onViewMission(mission)}
                     className="bg-white rounded-3xl border border-[#92F1EC] overflow-hidden flex flex-col justify-between shadow-md hover:border-[#35AEAC] hover:shadow-xl transition-all cursor-pointer group"
                   >
-                    {/* Image Banner */}
-                    <div className="relative h-48 w-full overflow-hidden bg-teal-50">
-                      <img
-                        src={mission.bannerPhoto || mission.image || mission.bannerImage}
-                        alt={mission.title || mission.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute top-3 left-3">
-                        <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full text-white shadow-sm ${
-                          isCommunity ? 'bg-[#19887F]' : 'bg-[#076DDF]'
-                        }`}>
-                          {isCommunity ? 'AquaRise Mission' : 'External Opportunity'}
-                        </span>
-                      </div>
-
-                      {isJoined && (
-                        <div className="absolute top-3 right-3 bg-emerald-500 text-white text-[10px] font-black uppercase px-3 py-1 rounded-full shadow-md flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3 text-white" />
-                          <span>Joined</span>
-                        </div>
-                      )}
-                    </div>
+                    <CleanupCardBanner mission={mission} isCommunity={isCommunity} isJoined={isJoined} />
 
                     {/* Content */}
                     <div className="p-6 space-y-4 flex-grow flex flex-col justify-between">

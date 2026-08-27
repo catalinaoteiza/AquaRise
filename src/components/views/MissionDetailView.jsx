@@ -19,6 +19,7 @@ export default function MissionDetailView({
   onToast
 }) {
   const [copiedLink, setCopiedLink] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   if (!mission) return null;
 
@@ -108,8 +109,8 @@ export default function MissionDetailView({
 
         {/* Hero Banner Area */}
         <div className="relative rounded-3xl overflow-hidden shadow-xl border border-[#92F1EC] bg-white min-h-[220px] sm:min-h-[320px] flex items-center justify-center">
-          {heroImage ? (
-            <img src={heroImage} alt={mission.title} className="w-full h-full object-cover max-h-[380px]" />
+          {heroImage && !imgError ? (
+            <img src={heroImage} alt={mission.title} onError={() => setImgError(true)} className="w-full h-full object-cover max-h-[380px]" />
           ) : (
             <div className="w-full h-full py-16 px-8 bg-gradient-to-br from-[#19887F] via-[#35AEAC] to-[#076DDF] text-white text-center flex flex-col items-center justify-center space-y-4">
               <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white shadow-lg">

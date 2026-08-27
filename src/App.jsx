@@ -754,9 +754,8 @@ function AquaRiseApp() {
           loadReviewerStatusAndCertificates();
         }}
         onViewCertificate={(cert) => {
-          setSelectedCertificate(cert);
-          setActiveTab('certificate');
           setEvidenceTargetMission(null);
+          handleViewCertificate(cert);
         }}
         userProfile={profile}
         onToast={showToast}

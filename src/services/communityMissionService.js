@@ -306,11 +306,104 @@ export async function createCommunityMission(arg1, arg2 = null) {
 
     console.log('[AquaRise Stage7B LIVE INSERT SUCCESSFUL] Mission ID:', insertedRow.id);
 
-    const createdMission = normalizeMission(insertedRow, prof, [], 0);
-    return { mission: createdMission, error: null };
+    let finalRow = insertedRow;
+    let imageWarning = null;
+
+    // 7. If organizer selected a raw File object, upload to cleanup-images bucket
+    const imageFile = missionData.bannerFile || missionData.bannerPhotoFile || missionData.imageFile;
+    if (imageFile && imageFile instanceof File) {
+      const uploadRes = await uploadCleanupBannerImage(imageFile, insertedRow.id, authUserId);
+      if (uploadRes.bannerUrl) {
+        finalRow = { ...insertedRow, banner_url: uploadRes.bannerUrl };
+      } else if (uploadRes.error) {
+        console.warn('[AquaRise Storage Warning] Banner image upload failed:', uploadRes.error);
+        imageWarning = uploadRes.error;
+      }
+    }
+
+    const createdMission = normalizeMission(finalRow, prof, [], 0);
+    return { mission: createdMission, warning: imageWarning, error: null };
   } catch (err) {
     console.error('[AquaRise Stage7B LIVE INSERT EXCEPTION]', err);
     return { mission: null, error: "We couldn't create your community mission. Please try again." };
+  }
+}
+
+/**
+ * Uploads a cleanup banner image to Supabase Storage bucket 'cleanup-images'.
+ * Storage Path: <organizer-user-id>/<mission-id>/<timestamp>-<uuid>.<ext>
+ * If database banner_url update fails, newly uploaded storage object is deleted (orphan prevention).
+ */
+export async function uploadCleanupBannerImage(file, missionId, organizerUserId) {
+  if (!isSupabaseConfigured || !file || !missionId || !organizerUserId) {
+    return { bannerUrl: null, error: 'Invalid parameters for image upload.' };
+  }
+
+  const mimeToExt = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp'
+  };
+
+  const ext = mimeToExt[file.type.toLowerCase()];
+  if (!ext) {
+    return { bannerUrl: null, error: 'Unsupported file type. Please select a JPEG, PNG, or WebP image.' };
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    return { bannerUrl: null, error: 'Image size exceeds the 5 MB limit.' };
+  }
+
+  // Safe unique filename: <timestamp>-<uuid>.<ext>
+  const uniqueName = `${Date.now()}-${crypto.randomUUID()}.${ext}`;
+  const filePath = `${organizerUserId}/${missionId}/${uniqueName}`;
+
+  try {
+    // 1. Upload to Supabase Storage bucket 'cleanup-images'
+    const { data: uploadData, error: uploadErr } = await supabase.storage
+      .from('cleanup-images')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadErr) {
+      console.warn('[AquaRise Storage] Upload error to cleanup-images:', uploadErr.message);
+      return { bannerUrl: null, error: uploadErr.message };
+    }
+
+    // 2. Get Public Display URL
+    const { data: publicUrlData } = supabase.storage
+      .from('cleanup-images')
+      .getPublicUrl(filePath);
+
+    const publicUrl = publicUrlData?.publicUrl || null;
+
+    if (!publicUrl) {
+      // Rollback uploaded storage object if public URL fails
+      await supabase.storage.from('cleanup-images').remove([filePath]);
+      return { bannerUrl: null, error: 'Could not resolve public URL for uploaded banner.' };
+    }
+
+    // 3. Update banner_url column in public.community_missions
+    const { error: updateErr } = await supabase
+      .from('community_missions')
+      .update({ banner_url: publicUrl, updated_at: new Date().toISOString() })
+      .eq('id', missionId)
+      .eq('organizer_id', organizerUserId);
+
+    if (updateErr) {
+      console.error('[AquaRise Storage] DB banner_url update failed, cleaning up orphaned file:', updateErr.message);
+      // Orphan Prevention: Delete uploaded file from storage
+      await supabase.storage.from('cleanup-images').remove([filePath]);
+      return { bannerUrl: null, error: `Mission created, but image link failed: ${updateErr.message}` };
+    }
+
+    return { bannerUrl: publicUrl, error: null };
+  } catch (err) {
+    console.error('[AquaRise Storage] Exception in uploadCleanupBannerImage:', err);
+    return { bannerUrl: null, error: err?.message || 'Failed to upload cleanup banner image.' };
   }
 }
 

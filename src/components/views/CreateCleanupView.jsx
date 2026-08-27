@@ -62,43 +62,22 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onCrea
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setDateError('Maximum banner photo size is 5 MB.');
+      setDateError('Maximum banner image size is 5 MB.');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new window.Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800;
-        const MAX_HEIGHT = 500;
-        let width = img.width;
-        let height = img.height;
+    setBannerPhotoFile(file);
+    const previewUrl = URL.createObjectURL(file);
+    setBannerPhoto(previewUrl);
+    setDateError('');
+  };
 
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height = Math.round((height * MAX_WIDTH) / width);
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width = Math.round((width * MAX_HEIGHT) / height);
-            height = MAX_HEIGHT;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-        setBannerPhoto(compressedDataUrl);
-        setDateError('');
-      };
-      img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
+  const handleRemoveBanner = () => {
+    setBannerPhoto(null);
+    setBannerPhotoFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -166,6 +145,7 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onCrea
       verificationStatus: 'unverified',
       organizer: currentOrganizerName,
       maxCapacity: parseInt(formData.capacity, 10) || 25,
+      bannerFile: bannerPhotoFile,
       bannerImage: bannerPhoto,
       image: bannerPhoto,
       description: formData.description.trim() || `Community-led cleanup mission dedicated to removing plastic waste and debris from ${formData.waterbodyName}.`,
