@@ -1,6 +1,6 @@
 import React from 'react';
 import Logo from './Logo';
-import { Heart, Globe, Github, Twitter, Instagram, Shield } from 'lucide-react';
+import { Heart, Globe, Github, Instagram, Shield } from 'lucide-react';
 
 export default function Footer({ onNavClick, onBecomeGuardian }) {
   return (
@@ -20,9 +20,6 @@ export default function Footer({ onNavClick, onBecomeGuardian }) {
             <div className="pt-2 flex items-center gap-3">
               <a href="#github" className="p-2.5 rounded-full bg-ocean-900 hover:bg-ocean-800 text-slate-300 hover:text-aqua-400 transition-colors border border-ocean-700">
                 <Github className="w-4 h-4" />
-              </a>
-              <a href="#twitter" className="p-2.5 rounded-full bg-ocean-900 hover:bg-ocean-800 text-slate-300 hover:text-aqua-400 transition-colors border border-ocean-700">
-                <Twitter className="w-4 h-4" />
               </a>
               <a
                 href="https://www.instagram.com/aqua_riseapp/"
