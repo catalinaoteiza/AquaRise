@@ -318,8 +318,8 @@ export async function getCompletionSubmissionsByStatus(filterStatus = 'pending')
       .from('mission_completion_submissions')
       .select(`
         *,
-        community_missions:mission_id (*),
-        profiles:user_id (*)
+        community_missions (*),
+        profiles!user_id (*)
       `)
       .order('updated_at', { ascending: false });
 

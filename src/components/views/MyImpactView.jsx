@@ -250,11 +250,13 @@ export default function MyImpactView({
           {safeCertificates.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {safeCertificates.map((cert) => {
-                const certCode = cert.certificate_code || cert.certificateId || 'AQR-VALID';
+                const certCode = cert.certificate_code || cert.certificateId || '';
                 const recipient = cert.recipient_name || cert.guardianName || 'AquaRise Guardian';
                 const title = cert.mission_title || `${cert.waterbodyName || 'Community'} Cleanup`;
-                const hoursVal = cert.volunteer_minutes ? (cert.volunteer_minutes / 60).toFixed(1) : (cert.volunteerHours || 2);
-                const dateVal = cert.issued_at ? new Date(cert.issued_at).toLocaleDateString() : (cert.issuedDate || '2026');
+                const volunteerMins = cert.volunteer_minutes ?? (cert.volunteerHours ? Math.round(cert.volunteerHours * 60) : 0);
+                const hoursVal = volunteerMins > 0 ? (volunteerMins / 60).toFixed(volunteerMins % 60 === 0 ? 0 : 1) : '0';
+                const rawDate = cert.issued_at || cert.issuedDate;
+                const dateVal = rawDate ? new Date(rawDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Verified';
 
                 return (
                   <div key={cert.id} className="p-5 rounded-2xl bg-amber-50/50 border border-amber-300 flex flex-col justify-between space-y-4 shadow-sm">

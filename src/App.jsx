@@ -562,7 +562,7 @@ function AquaRiseApp() {
             joinedMissionIds={joinedMissionIds}
             missions={communityMissions}
             participations={realUserParticipations.length > 0 ? realUserParticipations : participations}
-            certificates={realCertificates.length > 0 ? realCertificates : certificates}
+            certificates={realCertificates}
             onOpenAuth={() => setIsAuthModalOpen(true)}
             onOpenEditProfile={() => setIsEditProfileOpen(true)}
             onBecomeGuardian={handleOpenGuardian}

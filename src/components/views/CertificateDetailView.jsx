@@ -2,6 +2,23 @@ import React, { useState } from 'react';
 import { Printer, Copy, CheckCircle2, ArrowLeft, ShieldCheck, QrCode, Award, ExternalLink, Calendar, MapPin, Clock, Trash2, Star } from 'lucide-react';
 import Logo from '../common/Logo';
 
+function formatCertificateDate(dateInput) {
+  if (!dateInput) return '';
+  try {
+    const str = String(dateInput).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      const [y, m, d] = str.split('-').map(Number);
+      const date = new Date(Date.UTC(y, m - 1, d));
+      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+    }
+    const date = new Date(str);
+    if (isNaN(date.getTime())) return str;
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch (e) {
+    return String(dateInput);
+  }
+}
+
 export default function CertificateDetailView({ certificate, onBack, onVerifyLinkClick }) {
   const [copied, setCopied] = useState(false);
 
@@ -21,18 +38,22 @@ export default function CertificateDetailView({ certificate, onBack, onVerifyLin
   }
 
   const recipientName = certificate.recipient_name || certificate.recipientName || certificate.guardianName || 'AquaRise Guardian';
-  const certCode = certificate.certificate_code || certificate.certificateCode || certificate.certificateId || 'AQR-VALID';
-  const missionTitle = certificate.mission_title || certificate.missionTitle || `${certificate.waterbodyName || 'Community'} Cleanup`;
-  const waterbody = certificate.waterbody_name || certificate.waterbodyName || 'Local Waterbody';
-  const locationText = [certificate.city, certificate.region, certificate.country].filter(Boolean).join(', ') || certificate.location || 'Global Cleanup Site';
-  
-  const volunteerMins = certificate.volunteer_minutes || (certificate.volunteerHours ? certificate.volunteerHours * 60 : 120);
+  const certCode = certificate.certificate_code || certificate.certificateCode || certificate.certificateId || '';
+  const missionTitle = certificate.mission_title || certificate.missionTitle || 'Community Cleanup Mission';
+  const waterbody = certificate.waterbody_name || certificate.waterbodyName || '';
+  const locationText = [certificate.city, certificate.region, certificate.country].filter(Boolean).join(', ') || certificate.location || '';
+
+  const volunteerMins = certificate.volunteer_minutes ?? (certificate.volunteerHours ? Math.round(certificate.volunteerHours * 60) : 0);
   const hoursDisplay = Math.floor(volunteerMins / 60);
   const minsDisplay = volunteerMins % 60;
-  const timeText = hoursDisplay > 0 ? `${hoursDisplay} hr${hoursDisplay > 1 ? 's' : ''} ${minsDisplay > 0 ? `${minsDisplay} m` : ''}` : `${minsDisplay} min`;
+  const timeText = volunteerMins > 0
+    ? (hoursDisplay > 0
+        ? `${hoursDisplay} hr${hoursDisplay > 1 ? 's' : ''}${minsDisplay > 0 ? ` ${minsDisplay} min` : ''}`
+        : `${minsDisplay} min`)
+    : 'Verified Volunteer Contribution';
 
-  const issuedDateText = certificate.issued_at ? new Date(certificate.issued_at).toLocaleDateString() : (certificate.issuedDate || '2026');
-  const eventDateText = certificate.event_date ? new Date(certificate.event_date).toLocaleDateString() : (certificate.eventDate || issuedDateText);
+  const issuedDateText = formatCertificateDate(certificate.issued_at || certificate.issuedDate) || 'Verified';
+  const eventDateText = formatCertificateDate(certificate.event_date || certificate.eventDate || certificate.issued_at) || issuedDateText;
 
   const handlePrint = () => {
     window.print();
@@ -120,8 +141,14 @@ export default function CertificateDetailView({ certificate, onBack, onVerifyLin
 
             <p className="text-sm sm:text-base text-slate-700 font-medium leading-relaxed tracking-normal">
               in recognition of verified volunteer dedication and active environmental contribution during the{' '}
-              <strong className="text-ocean-950 font-bold">{missionTitle}</strong> protecting local waterbodies at{' '}
-              <strong className="text-[#19887F] font-bold">{waterbody}</strong> ({locationText}).
+              <strong className="text-ocean-950 font-bold">{missionTitle}</strong>
+              {waterbody ? (
+                <>
+                  {' '}protecting local waterbodies at{' '}
+                  <strong className="text-[#19887F] font-bold">{waterbody}</strong>
+                </>
+              ) : null}
+              {locationText ? <span className="text-slate-600 font-normal"> ({locationText})</span> : null}.
             </p>
           </div>
 
