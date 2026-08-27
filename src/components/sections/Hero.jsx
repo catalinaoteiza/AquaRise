@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Globe2, Compass, AlertTriangle, CheckCircle2, Shield } from 'lucide-react';
+import { ArrowRight, Globe2, Compass, AlertTriangle, CheckCircle2, Shield, Eye, FileText, Users, Award } from 'lucide-react';
 
 export default function Hero({ onExploreCleanups, onReportPollution }) {
   return (
@@ -53,38 +53,49 @@ export default function Hero({ onExploreCleanups, onReportPollution }) {
             </button>
           </div>
 
-          {/* Action Pillar Highlights */}
-          <div className="pt-6 grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto text-left border-t border-teal-200/60">
-            <div className="flex items-center gap-2 text-xs font-bold text-[#042F2E]">
-              <CheckCircle2 className="w-4 h-4 text-[#0D9488] shrink-0" />
-              <span>Discover Cleanups</span>
+          {/* Feature Micro-Cards Under Hero */}
+          <div className="pt-8 grid grid-cols-2 md:grid-cols-4 gap-3.5 max-w-4xl mx-auto text-left">
+            <div className="flex items-center gap-3 p-3 sm:p-3.5 rounded-2xl bg-white/85 backdrop-blur border border-teal-200/80 shadow-sm hover:shadow transition-all group">
+              <div className="w-8 h-8 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Compass className="w-4 h-4 text-[#0D9488]" />
+              </div>
+              <span className="text-xs sm:text-sm font-bold text-[#042F2E] leading-tight">Discover Cleanups</span>
             </div>
-            <div className="flex items-center gap-2 text-xs font-bold text-[#042F2E]">
-              <CheckCircle2 className="w-4 h-4 text-[#0284C7] shrink-0" />
-              <span>Report Pollution</span>
+
+            <div className="flex items-center gap-3 p-3 sm:p-3.5 rounded-2xl bg-white/85 backdrop-blur border border-teal-200/80 shadow-sm hover:shadow transition-all group">
+              <div className="w-8 h-8 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <AlertTriangle className="w-4 h-4 text-[#0284C7]" />
+              </div>
+              <span className="text-xs sm:text-sm font-bold text-[#042F2E] leading-tight">Report Pollution</span>
             </div>
-            <div className="flex items-center gap-2 text-xs font-bold text-[#042F2E]">
-              <CheckCircle2 className="w-4 h-4 text-[#0D9488] shrink-0" />
-              <span>Organize Action</span>
+
+            <div className="flex items-center gap-3 p-3 sm:p-3.5 rounded-2xl bg-white/85 backdrop-blur border border-teal-200/80 shadow-sm hover:shadow transition-all group">
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Users className="w-4 h-4 text-[#059669]" />
+              </div>
+              <span className="text-xs sm:text-sm font-bold text-[#042F2E] leading-tight">Organize Action</span>
             </div>
-            <div className="flex items-center gap-2 text-xs font-bold text-[#042F2E]">
-              <CheckCircle2 className="w-4 h-4 text-[#0284C7] shrink-0" />
-              <span>Track Verified Impact</span>
+
+            <div className="flex items-center gap-3 p-3 sm:p-3.5 rounded-2xl bg-white/85 backdrop-blur border border-teal-200/80 shadow-sm hover:shadow transition-all group">
+              <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Award className="w-4 h-4 text-[#D97706]" />
+              </div>
+              <span className="text-xs sm:text-sm font-bold text-[#042F2E] leading-tight">Track Verified Impact</span>
             </div>
           </div>
 
         </div>
 
-        {/* Hero Editorial Environmental Showcase Image (Attached Image 1) */}
+        {/* Hero Editorial Showcase Image (Full Coverage, No Black Side Gaps) */}
         <div className="mt-14 max-w-5xl mx-auto">
-          <div className="relative rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden border border-teal-200/80 shadow-2xl bg-[#042F2E]/80 group">
+          <div className="relative rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden border border-teal-200/80 shadow-2xl group w-full">
             <img
               src="/pollution-riverbank-action.jpg"
               alt="Community Guardian recovering plastic debris from polluted riverbank"
-              className="w-full h-[320px] sm:h-[420px] md:h-[480px] object-cover object-center transform transition-transform duration-700 group-hover:scale-105"
+              className="w-full h-[340px] sm:h-[440px] md:h-[500px] object-cover object-center transform transition-transform duration-700 group-hover:scale-105 block"
             />
-            {/* Subtle Gradient & Backdrop Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#042F2E]/90 via-[#042F2E]/40 to-transparent"></div>
+            {/* Subtle Gradient Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#042F2E]/90 via-[#042F2E]/30 to-transparent"></div>
 
             {/* Caption & Floating Badge */}
             <div className="absolute bottom-6 left-6 right-6 sm:bottom-8 sm:left-8 sm:right-8 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 text-white">

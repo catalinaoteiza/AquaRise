@@ -30,16 +30,16 @@ export default function EnvironmentalAwareness({ onReportPollution }) {
     <section className="py-20 sm:py-28 bg-gradient-to-b from-[#9DE2DC] via-[#14B8A6]/25 to-[#0F766E]/40 text-[#042F2E] relative border-t border-teal-300/40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Editorial 2-Column Storytelling Showcase (Using Attached Image 2) */}
+        {/* Editorial 2-Column Storytelling Showcase (Using Rotated Horizontal Image) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center mb-20">
           
-          {/* Left Column: Attached Image 2 Frame */}
+          {/* Left Column: Horizontal Image Frame */}
           <div className="lg:col-span-6 relative">
-            <div className="relative rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden border border-white/80 shadow-2xl bg-[#042F2E] group">
+            <div className="relative rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden border border-white/80 shadow-2xl bg-[#042F2E] group w-full">
               <img
                 src="/pollution-community-assessment.jpg"
                 alt="AquaRise community Guardians assessing riverbank pollution and debris"
-                className="w-full h-[360px] sm:h-[440px] object-cover object-center transform transition-transform duration-700 group-hover:scale-105"
+                className="w-full h-[320px] sm:h-[400px] object-cover object-center transform transition-transform duration-700 group-hover:scale-105 block"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#042F2E]/85 via-transparent to-transparent"></div>
               
@@ -70,9 +70,9 @@ export default function EnvironmentalAwareness({ onReportPollution }) {
               Unmonitored plastic pollution silently degrades rivers, wetlands, and shorelines. When local Guardians identify, document, and clean these sites, we stop toxic breakdown at the source.
             </p>
 
-            <div className="p-6 rounded-3xl bg-white/80 backdrop-blur border border-white/90 shadow-md space-y-3">
-              <h4 className="font-bold text-[#042F2E] text-base flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-[#0D9488]" />
+            <div className="p-6 rounded-3xl bg-white/85 backdrop-blur border border-white/90 shadow-md space-y-2">
+              <h4 className="font-display text-xl sm:text-2xl text-[#042F2E] font-normal flex items-center gap-2.5">
+                <Sparkles className="w-5 h-5 text-[#0D9488] shrink-0" />
                 <span>Local Action Drives Global Recovery</span>
               </h4>
               <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-normal">

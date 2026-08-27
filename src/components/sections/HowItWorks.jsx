@@ -7,28 +7,24 @@ export default function HowItWorks() {
       title: 'Discover',
       sentence: 'Find polluted waterbodies and legitimate cleanup opportunities in your area or around the globe.',
       icon: Search,
-      glow: 'from-cyan-500/20 to-teal-500/20',
       badgeColor: 'text-cyan-300'
     },
     {
       title: 'Join or Organize',
       sentence: 'Participate in existing community cleanups or create a new AquaRise mission where action is needed.',
       icon: Users,
-      glow: 'from-teal-500/20 to-emerald-500/20',
       badgeColor: 'text-teal-300'
     },
     {
       title: 'Take Action',
       sentence: 'Gather with fellow Guardians, collect waste, log evidence, and report environmental findings.',
       icon: Zap,
-      glow: 'from-emerald-500/20 to-sky-500/20',
       badgeColor: 'text-emerald-300'
     },
     {
       title: 'Track Impact',
       sentence: 'Receive verified completion recognition, digital certificates, and log lifetime Guardian contributions.',
       icon: Award,
-      glow: 'from-sky-500/20 to-blue-500/20',
       badgeColor: 'text-sky-300'
     }
   ];
@@ -54,17 +50,17 @@ export default function HowItWorks() {
           </p>
         </div>
 
-        {/* 4 Steps Grid */}
+        {/* 4 Steps Grid with High Contrast Cards & Newsreader Titles */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative">
           {steps.map((step, idx) => {
             const Icon = step.icon;
             return (
               <div
                 key={idx}
-                className="bg-white/10 backdrop-blur-md rounded-3xl p-7 border border-white/15 shadow-xl hover:border-teal-300/40 hover:bg-white/15 transition-all duration-300 flex flex-col justify-between space-y-6 relative group"
+                className="bg-[#052C29]/95 backdrop-blur-md rounded-3xl p-7 border border-teal-300/35 shadow-2xl hover:border-teal-300/60 hover:bg-[#073935] transition-all duration-300 flex flex-col justify-between space-y-6 relative group"
               >
                 <div className="flex items-center justify-between">
-                  <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center font-bold text-white shrink-0 group-hover:scale-105 transition-transform duration-300">
+                  <div className="w-12 h-12 rounded-2xl bg-teal-500/20 border border-teal-300/40 flex items-center justify-center font-bold text-teal-200 shrink-0 group-hover:scale-105 transition-transform duration-300">
                     <Icon className="w-6 h-6 text-teal-200" />
                   </div>
                   <span className={`text-sm font-black font-mono ${step.badgeColor} tracking-wider`}>
@@ -73,8 +69,8 @@ export default function HowItWorks() {
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-white tracking-tight">{step.title}</h3>
-                  <p className="text-xs sm:text-sm text-teal-100/80 leading-relaxed font-normal">
+                  <h3 className="font-display text-2xl font-normal text-white tracking-tight">{step.title}</h3>
+                  <p className="font-sans text-xs sm:text-sm text-teal-100/90 leading-relaxed font-normal">
                     {step.sentence}
                   </p>
                 </div>
