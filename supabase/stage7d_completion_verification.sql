@@ -40,6 +40,46 @@ $$;
 REVOKE ALL ON FUNCTION public.is_completion_reviewer() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.is_completion_reviewer() TO authenticated;
 
+-- 2.b Secure Mission Organizer or Reviewer Check Function
+CREATE OR REPLACE FUNCTION public.is_mission_organizer_or_reviewer(p_mission_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RETURN false;
+  END IF;
+
+  -- 1. Check if user is a global completion reviewer
+  IF EXISTS (
+    SELECT 1
+    FROM public.completion_reviewers
+    WHERE user_id = auth.uid()
+      AND active = true
+  ) THEN
+    RETURN true;
+  END IF;
+
+  -- 2. Check if user is the organizer of this specific mission
+  IF p_mission_id IS NOT NULL AND EXISTS (
+    SELECT 1
+    FROM public.community_missions
+    WHERE id = p_mission_id
+      AND organizer_id = auth.uid()
+  ) THEN
+    RETURN true;
+  END IF;
+
+  RETURN false;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.is_mission_organizer_or_reviewer(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.is_mission_organizer_or_reviewer(uuid) TO authenticated;
+
 -- Hardened Reviewer Table Privacy (Narrow policy: auth.uid() = user_id)
 DROP POLICY IF EXISTS "Authenticated users can check own reviewer status" ON public.completion_reviewers;
 CREATE POLICY "Authenticated users can check own reviewer status"
@@ -90,11 +130,7 @@ CREATE POLICY "Participants and reviewers can read completion submissions"
   USING (
     auth.uid() IS NOT NULL AND (
       user_id = auth.uid() OR
-      public.is_completion_reviewer() = true OR
-      EXISTS (
-        SELECT 1 FROM public.community_missions cm
-        WHERE cm.id = mission_id AND cm.organizer_id = auth.uid()
-      )
+      public.is_mission_organizer_or_reviewer(mission_id) = true
     )
   );
 
@@ -119,12 +155,10 @@ CREATE POLICY "Uploaders and reviewers can read evidence photo metadata"
   USING (
     auth.uid() IS NOT NULL AND (
       uploader_id = auth.uid() OR
-      public.is_completion_reviewer() = true OR
       EXISTS (
         SELECT 1 FROM public.mission_completion_submissions mcs
-        JOIN public.community_missions cm ON cm.id = mcs.mission_id
         WHERE mcs.id = completion_evidence_photos.submission_id
-          AND cm.organizer_id = auth.uid()
+          AND public.is_mission_organizer_or_reviewer(mcs.mission_id) = true
       )
     )
   );
@@ -192,13 +226,13 @@ CREATE POLICY "Uploaders and reviewers read completion evidence storage"
     bucket_id = 'completion-evidence' AND
     auth.role() = 'authenticated' AND (
       (storage.foldername(name))[1] = auth.uid()::text OR
-      public.is_completion_reviewer() = true OR
-      EXISTS (
-        SELECT 1 FROM public.community_missions cm
-        JOIN public.mission_completion_submissions mcs ON mcs.mission_id = cm.id
-        WHERE (storage.foldername(name))[2] IS NOT NULL
-          AND mcs.id::text = (storage.foldername(name))[2]
-          AND cm.organizer_id = auth.uid()
+      (
+        (storage.foldername(name))[2] IS NOT NULL AND
+        EXISTS (
+          SELECT 1 FROM public.mission_completion_submissions mcs
+          WHERE mcs.id::text = (storage.foldername(name))[2]
+            AND public.is_mission_organizer_or_reviewer(mcs.mission_id) = true
+        )
       )
     )
   );
