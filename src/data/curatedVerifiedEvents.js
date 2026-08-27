@@ -26,7 +26,7 @@ export const CURATED_VERIFIED_EXTERNAL_EVENTS = [
     eventUrl: 'https://oceanconservancy.org/trash-free-seas/international-coastal-cleanup/',
     lastChecked: '2026-08-24T12:00:00Z',
     description: 'The world\'s largest single-day volunteer effort for ocean health, removing millions of pounds of trash from beaches and waterways worldwide.',
-    bannerPhoto: 'https://images.unsplash.com/photo-1621451537084-482c73073a0f?auto=format&fit=crop&q=80&w=800'
+    bannerPhoto: '/cleanup-underwater-pollution.jpg'
   },
   {
     id: 'ext-ascoa-cameroon-2026',
@@ -51,7 +51,7 @@ export const CURATED_VERIFIED_EXTERNAL_EVENTS = [
     eventUrl: 'https://oceans-and-fisheries.ec.europa.eu/eubeachcleanup-events-2026/international-coastal-cleanup-ascoa-2026-09-19_en',
     lastChecked: '2026-08-24T12:00:00Z',
     description: 'Join ASCOA for the International Coastal Cleanup 2026 in Limbe, Cameroon, targeting plastic waste and marine debris along the Atlantic shoreline.',
-    bannerPhoto: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=80&w=800'
+    bannerPhoto: '/cleanup-beach-collection.jpg'
   },
   {
     id: 'ext-sealife-trust-2026',
@@ -75,6 +75,6 @@ export const CURATED_VERIFIED_EXTERNAL_EVENTS = [
     eventUrl: 'https://www.sealifetrust.org/en/what-we-do/sea-life-trust-24-hour-global-clean-up/',
     lastChecked: '2026-08-24T12:00:00Z',
     description: 'A 24-hour global wave of coastal and waterway cleanups hosted by SEA LIFE TRUST sanctuaries and local marine conservation teams around the world.',
-    bannerPhoto: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800'
+    bannerPhoto: '/cleanup-bottle-caps.jpg'
   }
 ];

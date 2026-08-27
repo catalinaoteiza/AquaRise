@@ -13,7 +13,7 @@ export const FEATURED_EXTERNAL_CLEANUPS = [
     description: 'Join volunteers in Limbe as part of the 2026 International Coastal Cleanup campaign, helping remove marine litter from coastal environments and contributing to a global movement for healthier oceans.',
     sourceUrl: 'https://oceans-and-fisheries.ec.europa.eu/eubeachcleanup-events-2026/international-coastal-cleanup-ascoa-2026-09-19_en',
     buttonText: 'View Official Event',
-    image: 'https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?auto=format&fit=crop&q=80&w=800'
+    image: '/cleanup-beach-collection.jpg'
   },
   {
     id: 'ext-cleanup-2',
@@ -29,23 +29,23 @@ export const FEATURED_EXTERNAL_CLEANUPS = [
     description: 'A worldwide 24-hour cleanup bringing volunteers together to remove litter from beaches, waterways and natural environments while protecting marine ecosystems.',
     sourceUrl: 'https://www.sealifetrust.org/en/what-we-do/sea-life-trust-24-hour-global-clean-up/',
     buttonText: 'Join / Learn More',
-    image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&q=80&w=800'
+    image: '/cleanup-bottle-caps.jpg'
   },
   {
     id: 'ext-cleanup-3',
-    title: 'World Cleanup Day 2026',
-    organization: 'World Cleanup Day / Global Community',
+    title: 'International Coastal Cleanup Day',
+    organization: 'Ocean Conservancy',
     location: 'Worldwide',
-    date: 'September 20, 2026',
+    date: 'September 19, 2026',
     time: 'Global Regional Schedules',
     category: 'Global Cleanup',
     filterCategory: 'Global Events',
     badge: 'Global Opportunity',
     tags: ['Global', 'Beaches', 'Rivers', 'Parks', 'Community Action'],
-    description: 'Join a worldwide movement bringing communities together to remove litter from beaches, rivers, parks, streets and other natural environments.',
-    sourceUrl: 'https://www.dionfest.com/world-cleanup-day-clean-up-the-world-weekend/',
+    description: 'The world\'s largest single-day volunteer effort for ocean health, removing millions of pounds of trash from beaches and waterways worldwide.',
+    sourceUrl: 'https://oceanconservancy.org/trash-free-seas/international-coastal-cleanup/',
     buttonText: 'Explore Event',
-    image: 'https://images.unsplash.com/photo-1621451537084-482c73073a0f?auto=format&fit=crop&q=80&w=800'
+    image: '/cleanup-underwater-pollution.jpg'
   }
 ];
 
