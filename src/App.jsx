@@ -500,7 +500,14 @@ function AquaRiseApp() {
             user={user}
             profile={profile}
             joinedMissionIds={joinedMissionIds}
-            onBack={() => setActiveTab('cleanups')}
+            onBack={() => {
+              setActiveTab('cleanups');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onBackToCleanups={() => {
+              setActiveTab('cleanups');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             onJoinMission={handleJoinMission}
             onLeaveMission={handleLeaveMission}
             onOpenAuth={() => setIsAuthModalOpen(true)}

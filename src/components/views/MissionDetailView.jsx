@@ -41,7 +41,13 @@ export default function MissionDetailView({
     }
   };
 
-  const handleBack = onBack || onBackToCleanups;
+  const handleBack = () => {
+    if (typeof onBackToCleanups === 'function') {
+      onBackToCleanups();
+    } else if (typeof onBack === 'function') {
+      onBack();
+    }
+  };
 
   const currentCount = (mission.participantCount || 0) + (isJoined ? 1 : 0);
   const heroImage = mission.bannerImage || mission.image;
@@ -67,7 +73,7 @@ export default function MissionDetailView({
         <div className="flex items-center justify-between flex-wrap gap-3">
           <button
             type="button"
-            onClick={onBackToCleanups}
+            onClick={handleBack}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-ocean-950 font-bold text-xs border border-[#92F1EC] hover:bg-[#92F1EC]/30 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#076DDF]"
           >
             <ArrowLeft className="w-4 h-4 text-[#19887F]" />
