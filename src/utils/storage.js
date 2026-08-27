@@ -169,9 +169,15 @@ export function getStoredReports() {
 }
 
 export function saveStoredReport(newReport) {
+  if (!newReport || !newReport.id) return getStoredReports();
   const currentReports = getStoredReports();
-  const updatedReports = [newReport, ...currentReports];
+  const filtered = currentReports.filter((r) => r.id !== newReport.id);
+  const updatedReports = [newReport, ...filtered];
   localStorage.setItem(REPORTS_KEY, JSON.stringify(updatedReports));
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('aquarise_report_created', { detail: newReport }));
+  }
   return updatedReports;
 }
 

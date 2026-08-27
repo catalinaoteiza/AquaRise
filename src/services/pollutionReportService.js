@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase.js';
+import { getStoredReports, saveStoredReport } from '../utils/storage.js';
 
 /**
  * Normalizes a raw Supabase pollution_reports row into the canonical frontend report structure.
@@ -49,14 +50,16 @@ export function normalizePollutionReport(row) {
 }
 
 /**
- * Fetches all published community pollution reports from Supabase.
+ * Fetches all published community pollution reports from Supabase and local storage.
  */
 export async function fetchPollutionReports() {
-  try {
-    if (!isSupabaseConfigured) {
-      return [];
-    }
+  const localReports = getStoredReports();
 
+  if (!isSupabaseConfigured) {
+    return localReports;
+  }
+
+  try {
     let { data, error } = await supabase
       .from('pollution_reports')
       .select(`
@@ -81,39 +84,45 @@ export async function fetchPollutionReports() {
         .eq('published', true)
         .order('created_at', { ascending: false });
 
-      if (directErr || !directData) {
-        console.error('[AquaRise Reports Service] Direct select fallback error:', directErr?.message);
-        return [];
+      if (!directErr && directData) {
+        const enriched = await Promise.all(
+          directData.map(async (rep) => {
+            const { data: photos } = await supabase
+              .from('pollution_report_photos')
+              .select('*')
+              .eq('report_id', rep.id);
+
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('id, full_name, is_guardian, city, country')
+              .eq('id', rep.reporter_id)
+              .maybeSingle();
+
+            return {
+              ...rep,
+              pollution_report_photos: photos || [],
+              profiles: profile || null
+            };
+          })
+        );
+        data = enriched;
       }
-
-      const enriched = await Promise.all(
-        directData.map(async (rep) => {
-          const { data: photos } = await supabase
-            .from('pollution_report_photos')
-            .select('*')
-            .eq('report_id', rep.id);
-
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('id, full_name, is_guardian, city, country')
-            .eq('id', rep.reporter_id)
-            .maybeSingle();
-
-          return {
-            ...rep,
-            pollution_report_photos: photos || [],
-            profiles: profile || null
-          };
-        })
-      );
-
-      data = enriched;
     }
 
-    return (data || []).map(normalizePollutionReport).filter(Boolean);
+    const remoteReports = (data || []).map(normalizePollutionReport).filter(Boolean);
+
+    // Merge remote Supabase reports with local reports, deduplicating by ID
+    const reportMap = new Map();
+    [...localReports, ...remoteReports].forEach((rep) => {
+      if (rep && rep.id) {
+        reportMap.set(String(rep.id), rep);
+      }
+    });
+
+    return Array.from(reportMap.values());
   } catch (err) {
     console.error('[AquaRise Reports Service] Exception fetching pollution reports:', err);
-    return [];
+    return localReports;
   }
 }
 
@@ -141,19 +150,6 @@ function dataUrlToBlob(dataUrl) {
  */
 export async function createPollutionReport(reportData) {
   try {
-    if (!isSupabaseConfigured) {
-      return { report: null, error: 'Supabase integration is not active.' };
-    }
-
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-    if (sessionError || !session || !session.user) {
-      return { report: null, error: 'You must be signed in to submit a pollution report.' };
-    }
-
-    const authUserId = session.user.id;
-
-    // Validate inputs
     const waterbodyName = String(reportData.waterbodyName || '').trim();
     const city = String(reportData.city || '').trim();
     const country = String(reportData.country || '').trim();
@@ -165,6 +161,47 @@ export async function createPollutionReport(reportData) {
 
     const lat = reportData.coordinates && typeof reportData.coordinates.lat === 'number' ? reportData.coordinates.lat : null;
     const lng = reportData.coordinates && typeof reportData.coordinates.lng === 'number' ? reportData.coordinates.lng : null;
+
+    if (!isSupabaseConfigured) {
+      const fallbackId = `report-${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const fallbackReport = {
+        id: fallbackId,
+        waterbodyName,
+        waterbodyType: reportData.waterbodyType || 'River',
+        country,
+        city,
+        region: String(reportData.region || '').trim(),
+        locationDescription: String(reportData.locationDescription || '').trim() || `${city}, ${country}`,
+        exactLocationLabel: String(reportData.exactLocationLabel || '').trim() || `${city}, ${country}`,
+        coordinates: { lat, lng },
+        pollutionSeverity: reportData.pollutionSeverity || 'High',
+        pollutionTypes: Array.isArray(reportData.pollutionTypes) ? reportData.pollutionTypes : ['Plastic waste'],
+        description,
+        affectedArea: String(reportData.affectedArea || 'Localized shoreline area').trim(),
+        wildlifeAffected: Boolean(reportData.wildlifeAffected),
+        additionalNotes: String(reportData.additionalNotes || '').trim(),
+        images: Array.isArray(reportData.images) ? reportData.images : [],
+        submittedAt: new Date().toISOString().split('T')[0],
+        verificationStatus: 'unverified',
+        status: 'Community Report',
+        isCommunityReport: true,
+        reporterId: 'local-user',
+        reporterName: 'AquaRise Guardian',
+        isGuardian: true,
+        disclaimer: 'Community-submitted observation. Not yet independently verified.'
+      };
+
+      saveStoredReport(fallbackReport);
+      return { report: fallbackReport, error: null };
+    }
+
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError || !session || !session.user) {
+      return { report: null, error: 'You must be signed in to submit a pollution report.' };
+    }
+
+    const authUserId = session.user.id;
 
     const dbInsertData = {
       reporter_id: authUserId,
@@ -204,12 +241,7 @@ export async function createPollutionReport(reportData) {
       .single();
 
     if (insertErr || !insertedReport) {
-      console.error('[AquaRise Reports Service] DB Insert Failed:', {
-        message: insertErr?.message,
-        code: insertErr?.code,
-        details: insertErr?.details,
-        hint: insertErr?.hint
-      });
+      console.error('[AquaRise Reports Service] DB Insert Failed:', insertErr?.message);
       return { report: null, error: insertErr?.message || 'Failed to submit pollution report.' };
     }
 
@@ -278,6 +310,7 @@ export async function createPollutionReport(reportData) {
 
     insertedReport.pollution_report_photos = uploadedPhotos;
     const finalNormalized = normalizePollutionReport(insertedReport);
+    saveStoredReport(finalNormalized);
 
     return { report: finalNormalized, error: null };
   } catch (err) {
