@@ -318,10 +318,22 @@ function AquaRiseApp() {
   };
 
   const handleReportSubmitted = async (reportPayload) => {
-    showToast('Pollution report submitted successfully to shared community map!', 'success');
-    loadPollutionReports();
-    setActiveTab('community');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    try {
+      const res = await createPollutionReport(reportPayload);
+      if (res?.error) {
+        showToast(res.error, 'error');
+        return res;
+      }
+      showToast('Pollution report submitted successfully to shared community map!', 'success');
+      await loadPollutionReports();
+      setActiveTab('community');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return res;
+    } catch (err) {
+      console.error('[AquaRise App] Exception submitting pollution report:', err);
+      showToast('Failed to submit pollution report.', 'error');
+      return { report: null, error: err?.message || 'Submission failed' };
+    }
   };
 
   const handleSaveProfile = async (updatedProfile) => {

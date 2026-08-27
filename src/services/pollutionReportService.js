@@ -57,7 +57,7 @@ export async function fetchPollutionReports() {
       return [];
     }
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('pollution_reports')
       .select(`
         *,
@@ -73,14 +73,41 @@ export async function fetchPollutionReports() {
       .eq('published', true)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('[AquaRise Reports Service] Error fetching pollution reports:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint
-      });
-      return [];
+    if (error || !data) {
+      console.warn('[AquaRise Reports Service] Relational select note, trying direct select fallback:', error?.message);
+      const { data: directData, error: directErr } = await supabase
+        .from('pollution_reports')
+        .select('*')
+        .eq('published', true)
+        .order('created_at', { ascending: false });
+
+      if (directErr || !directData) {
+        console.error('[AquaRise Reports Service] Direct select fallback error:', directErr?.message);
+        return [];
+      }
+
+      const enriched = await Promise.all(
+        directData.map(async (rep) => {
+          const { data: photos } = await supabase
+            .from('pollution_report_photos')
+            .select('*')
+            .eq('report_id', rep.id);
+
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, full_name, is_guardian, city, country')
+            .eq('id', rep.reporter_id)
+            .maybeSingle();
+
+          return {
+            ...rep,
+            pollution_report_photos: photos || [],
+            profiles: profile || null
+          };
+        })
+      );
+
+      data = enriched;
     }
 
     return (data || []).map(normalizePollutionReport).filter(Boolean);
