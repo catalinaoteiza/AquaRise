@@ -13,7 +13,7 @@ export default function Logo({ size = 'md', className = '' }) {
       <img
         src="/aquarise-logo.png"
         alt="AquaRise"
-        className={`${logoHeights[size]} w-auto object-contain transition-transform duration-300 group-hover:scale-105 block drop-shadow-sm`}
+        className={`${logoHeights[size]} w-auto object-contain transition-transform duration-300 group-hover:scale-105 block`}
       />
     </div>
   );
