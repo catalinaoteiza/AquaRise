@@ -24,7 +24,13 @@ export default function Footer({ onNavClick, onBecomeGuardian }) {
               <a href="#twitter" className="p-2.5 rounded-full bg-ocean-900 hover:bg-ocean-800 text-slate-300 hover:text-aqua-400 transition-colors border border-ocean-700">
                 <Twitter className="w-4 h-4" />
               </a>
-              <a href="#instagram" className="p-2.5 rounded-full bg-ocean-900 hover:bg-ocean-800 text-slate-300 hover:text-aqua-400 transition-colors border border-ocean-700">
+              <a
+                href="https://www.instagram.com/aqua_riseapp/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="AquaRise on Instagram"
+                className="p-2.5 rounded-full bg-ocean-900 hover:bg-ocean-800 text-slate-300 hover:text-aqua-400 transition-colors border border-ocean-700"
+              >
                 <Instagram className="w-4 h-4" />
               </a>
             </div>
