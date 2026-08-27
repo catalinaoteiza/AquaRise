@@ -40,8 +40,8 @@ export default function CommunityView({
             <span>Global Guardian Network & Community Reports</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-black text-ocean-950">
-            The <span className="text-[#076DDF]">AquaRise Community</span>
+          <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl text-[#042F2E] font-normal tracking-tight">
+            The <span className="text-[#0D9488] italic font-normal">AquaRise Community</span>
           </h1>
 
           <p className="text-slate-700 text-base sm:text-lg font-medium">

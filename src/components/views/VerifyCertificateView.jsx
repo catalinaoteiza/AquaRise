@@ -100,8 +100,8 @@ export default function VerifyCertificateView({ initialCertId = '', onViewCertif
             <span>AquaRise Certificate Verification Portal</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-black text-ocean-950">
-            Verify <span className="text-[#076DDF]">Certificate</span>
+          <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl text-[#042F2E] font-normal tracking-tight">
+            Verify <span className="text-[#0D9488] italic font-normal">Certificate</span>
           </h1>
 
           <p className="text-slate-700 text-base sm:text-lg font-medium">

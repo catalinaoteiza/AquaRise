@@ -279,8 +279,8 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onCrea
             <Flag className="w-3.5 h-3.5 text-[#076DDF]" />
             <span>Community Organizers</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-[#071325]">
-            Organize a Cleanup Mission
+          <h1 className="font-display text-2xl sm:text-4xl lg:text-5xl text-[#042F2E] font-normal tracking-tight">
+            Organize a <span className="text-[#0D9488] italic font-normal">Cleanup Mission</span>
           </h1>
           <p className="text-xs sm:text-sm text-[#475569] font-medium leading-relaxed">
             Lead action for your local lake, river, or coastline. Published missions appear instantly across the AquaRise network for nearby Guardians to join.

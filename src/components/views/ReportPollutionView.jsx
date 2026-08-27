@@ -240,8 +240,8 @@ export default function ReportPollutionView({
                 <span>Community Environmental Action</span>
               </div>
 
-              <h1 className="text-3xl sm:text-5xl font-black text-ocean-950">
-                Report a <span className="text-[#076DDF]">Polluted Waterbody</span>
+              <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl text-[#042F2E] font-normal tracking-tight">
+                Report a <span className="text-[#0D9488] italic font-normal">Polluted Waterbody</span>
               </h1>
 
               <p className="text-slate-700 text-sm sm:text-base leading-relaxed font-medium">

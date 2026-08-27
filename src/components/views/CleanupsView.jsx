@@ -246,8 +246,8 @@ export default function CleanupsView({
             <span className="text-xs font-black tracking-widest text-[#19887F] uppercase bg-white px-3.5 py-1 rounded-full border border-[#92F1EC] inline-block shadow-sm">
               Community Action Hub
             </span>
-            <h1 className="text-3xl sm:text-4xl font-black text-ocean-950 tracking-tight">
-              Cleanup Missions & Opportunities
+            <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl text-[#042F2E] font-normal tracking-tight">
+              Cleanup Missions & <span className="text-[#0D9488] italic font-normal">Opportunities</span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-700 font-medium leading-relaxed">
               Find user-created AquaRise community missions and verified external environmental cleanup events across global waters.

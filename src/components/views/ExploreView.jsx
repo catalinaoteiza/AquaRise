@@ -208,8 +208,8 @@ export default function ExploreView({
             <span>Global Water Action Network</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-black text-ocean-950 tracking-tight">
-            Explore <span className="text-[#19887F]">Cleanup Opportunities</span>
+          <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl text-[#042F2E] font-normal tracking-tight">
+            Explore <span className="text-[#0D9488] italic font-normal">Cleanup Opportunities</span>
           </h1>
 
           <p className="text-slate-700 text-base sm:text-lg leading-relaxed font-medium">
