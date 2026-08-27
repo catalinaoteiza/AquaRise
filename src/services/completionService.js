@@ -313,13 +313,13 @@ export async function getCompletionSubmissionsByStatus(filterStatus = 'pending')
       return [];
     }
 
+    // Primary relational query: embed community_missions and profiles
     let query = supabase
       .from('mission_completion_submissions')
       .select(`
         *,
-        community_missions!mission_id (*),
-        profiles!user_id (*),
-        certificates (*)
+        community_missions:mission_id (*),
+        profiles:user_id (*)
       `)
       .order('updated_at', { ascending: false });
 
@@ -327,21 +327,66 @@ export async function getCompletionSubmissionsByStatus(filterStatus = 'pending')
       query = query.eq('status', filterStatus);
     }
 
-    const { data, error } = await query;
+    let { data, error } = await query;
 
-    if (error) {
-      console.error('[AquaRise Reviewer] Error fetching submissions by status:', error.message);
-      return [];
+    // Fail-safe fallback: If relational embedding errors, perform direct select and manual joins
+    if (error || !data) {
+      console.warn('[AquaRise Reviewer] Relational query note, running direct fallback:', error?.message);
+      let directQuery = supabase
+        .from('mission_completion_submissions')
+        .select('*')
+        .order('updated_at', { ascending: false });
+
+      if (filterStatus) {
+        directQuery = directQuery.eq('status', filterStatus);
+      }
+
+      const { data: directData, error: directErr } = await directQuery;
+      if (directErr || !directData) {
+        console.error('[AquaRise Reviewer] Error fetching submissions:', directErr?.message);
+        return [];
+      }
+
+      const enriched = await Promise.all(
+        directData.map(async (sub) => {
+          const { data: missionData } = await supabase
+            .from('community_missions')
+            .select('*')
+            .eq('id', sub.mission_id)
+            .maybeSingle();
+
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', sub.user_id)
+            .maybeSingle();
+
+          return {
+            ...sub,
+            community_missions: missionData || null,
+            profiles: profileData || null
+          };
+        })
+      );
+
+      data = enriched;
     }
 
     const rawList = data || [];
 
-    // Filter out self-submissions: Authorized reviewers review OTHER participants only
+    // Standardize object structure for component rendering
+    const formatted = rawList.map((sub) => ({
+      ...sub,
+      community_missions: sub.community_missions || sub.community_missions_mission_id || null,
+      profiles: sub.profiles || sub.profiles_user_id || null
+    }));
+
+    // Filter out self-submissions: Authorized reviewers & organizers review OTHER participants only
     if (currentUserId) {
-      return rawList.filter((sub) => sub.user_id !== currentUserId);
+      return formatted.filter((sub) => sub.user_id !== currentUserId);
     }
 
-    return rawList;
+    return formatted;
   } catch (err) {
     console.error('[AquaRise Reviewer] Exception fetching submissions by status:', err);
     return [];

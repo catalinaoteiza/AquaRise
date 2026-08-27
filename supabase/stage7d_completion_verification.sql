@@ -303,7 +303,7 @@ CREATE POLICY "Recipients and reviewers can read certificates"
   USING (
     auth.uid() IS NOT NULL AND (
       issued_to_user_id = auth.uid() OR
-      public.is_completion_reviewer() = true
+      public.is_mission_organizer_or_reviewer(mission_id) = true
     )
   );
 
@@ -425,12 +425,12 @@ BEGIN
     RAISE EXCEPTION 'Completion evidence can only be submitted after the cleanup event has taken place.';
   END IF;
 
-  -- Verify user is an active joined participant (participation_status MUST be 'joined')
+  -- Verify user is an active joined participant
   SELECT * INTO v_participant
   FROM public.mission_participants
   WHERE mission_id = p_mission_id
     AND user_id = v_user_id
-    AND participation_status = 'joined';
+    AND participation_status IN ('joined', 'pending_completion_verification');
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'You must be an active joined participant in this community mission to save completion evidence.';
@@ -552,7 +552,7 @@ BEGIN
   FROM public.mission_participants
   WHERE mission_id = v_submission.mission_id
     AND user_id = v_user_id
-    AND participation_status = 'joined'
+    AND participation_status IN ('joined', 'pending_completion_verification')
   FOR UPDATE;
 
   IF NOT FOUND THEN
