@@ -2,10 +2,10 @@ import React from 'react';
 
 export default function Logo({ size = 'md', className = '' }) {
   const logoHeights = {
-    sm: 'h-8',
-    md: 'h-11 sm:h-13',
-    lg: 'h-14 sm:h-16',
-    xl: 'h-18 sm:h-22',
+    sm: 'h-9 sm:h-11',
+    md: 'h-13 sm:h-16',
+    lg: 'h-16 sm:h-20',
+    xl: 'h-20 sm:h-24',
   };
 
   return (
@@ -13,7 +13,7 @@ export default function Logo({ size = 'md', className = '' }) {
       <img
         src="/aquarise-logo.png"
         alt="AquaRise"
-        className={`${logoHeights[size]} w-auto object-contain transition-transform duration-300 group-hover:scale-105 block`}
+        className={`${logoHeights[size]} w-auto object-contain transition-transform duration-300 group-hover:scale-105 block drop-shadow-sm`}
       />
     </div>
   );
