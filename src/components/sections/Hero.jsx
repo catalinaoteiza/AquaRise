@@ -10,6 +10,16 @@ export default function Hero({ onExploreCleanups, onReportPollution }) {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
+        {/* Decorative Swimming Fish Element (Top Right) */}
+        <div className="absolute top-8 right-6 sm:top-12 sm:right-12 lg:right-20 pointer-events-none z-10 hidden sm:block">
+          <img
+            src="/decorative-fish.png"
+            alt=""
+            aria-hidden="true"
+            className="w-16 sm:w-20 md:w-24 h-auto object-contain opacity-85 transition-opacity duration-300"
+          />
+        </div>
+        
         {/* Main Hero Header Stack */}
         <div className="text-center max-w-4xl mx-auto space-y-6 sm:space-y-8">
           
