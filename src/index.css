@@ -1,6 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.font-display {
+  font-family: 'Newsreader', Georgia, Cambria, 'Times New Roman', serif;
+  font-optical-sizing: auto;
+}
 
 :root {
   --sea-foam: #DAF6F6;
