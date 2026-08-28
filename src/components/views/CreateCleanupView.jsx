@@ -166,6 +166,9 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onCrea
         if (res?.error) {
           setDateError(res.error);
           setIsSubmitting(false);
+          setTimeout(() => {
+            document.getElementById('create-cleanup-error-banner')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 50);
           return;
         }
         if (res?.mission) {
@@ -466,7 +469,11 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onCrea
                   <div className="absolute top-3 right-3 flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        fileInputRef.current?.click();
+                      }}
                       className="px-3 py-1.5 rounded-xl bg-white/90 hover:bg-white text-ocean-950 font-bold text-xs shadow-md backdrop-blur-sm transition-all cursor-pointer flex items-center gap-1"
                     >
                       <Upload className="w-3.5 h-3.5 text-[#076DDF]" />
@@ -474,7 +481,11 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onCrea
                     </button>
                     <button
                       type="button"
-                      onClick={handleRemoveBanner}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleRemoveBanner();
+                      }}
                       className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center gap-1"
                     >
                       <X className="w-3.5 h-3.5" />
@@ -483,26 +494,27 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onCrea
                   </div>
                 </div>
               ) : (
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="p-8 rounded-2xl border-2 border-dashed border-teal-200 bg-teal-50/40 hover:bg-teal-50 hover:border-[#19887F] transition-all text-center cursor-pointer space-y-3"
+                <label
+                  htmlFor="cleanup-banner-file-input"
+                  className="block p-8 rounded-2xl border-2 border-dashed border-teal-200 bg-teal-50/40 hover:bg-teal-50 hover:border-[#19887F] transition-all text-center cursor-pointer space-y-3"
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-white border border-[#92F1EC] text-[#19887F] mx-auto flex items-center justify-center shadow-sm">
+                  <div className="w-12 h-12 rounded-2xl bg-white border border-[#92F1EC] text-[#19887F] mx-auto flex items-center justify-center shadow-sm pointer-events-none">
                     <Upload className="w-6 h-6" />
                   </div>
-                  <div>
+                  <div className="pointer-events-none">
                     <span className="text-xs font-bold text-[#076DDF] block">Click to choose a banner image</span>
                     <span className="text-[11px] text-slate-500 font-medium block mt-0.5">JPEG, PNG, or WebP up to 5 MB</span>
                   </div>
-                </div>
+                </label>
               )}
 
               <input
+                id="cleanup-banner-file-input"
                 type="file"
                 ref={fileInputRef}
                 onChange={handleBannerSelect}
                 accept="image/jpeg,image/png,image/webp"
-                className="hidden"
+                className="sr-only"
               />
             </div>
           </div>
