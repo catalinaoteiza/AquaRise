@@ -2,9 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Flag, MapPin, Calendar, Clock, Users, ArrowLeft, AlertCircle, CheckCircle2, Share2, ArrowRight, Upload, Image, X, Loader2 } from 'lucide-react';
 import LocationMapPlaceholder from '../common/LocationMapPlaceholder';
 
+function getLocalTodayStr() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 export default function CreateCleanupView({ initialData, onSubmitSuccess, onCreateMission, user, profile = {}, onNavigateExplore, onViewMission }) {
   const fileInputRef = useRef(null);
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalTodayStr();
 
   const safeProfile = profile || {};
 
@@ -25,6 +33,7 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onCrea
   });
 
   const [bannerPhoto, setBannerPhoto] = useState(null);
+  const [bannerPhotoFile, setBannerPhotoFile] = useState(null);
   const [dateError, setDateError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedMission, setSubmittedMission] = useState(null);
