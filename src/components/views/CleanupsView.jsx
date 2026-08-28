@@ -61,21 +61,30 @@ export default function CleanupsView({
   onCreateCleanup,
   onBecomeGuardian,
   onOpenAuth,
-  onToast
+  onToast,
+  onRefreshMissions
 }) {
   const [activeFilter, setActiveFilter] = useState('upcoming');
   const [searchQuery, setSearchQuery] = useState('');
   const [organizerFilter, setOrganizerFilter] = useState('All');
   const [participationTick, setParticipationTick] = useState(0);
 
-  const todayStr = new Date().toISOString().split('T')[0];
-
   const [liveDiscoveredEvents, setLiveDiscoveredEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [discoveryError, setDiscoveryError] = useState(null);
 
+  const todayStr = useMemo(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }, []);
+
   useEffect(() => {
-    const handleParticipationChange = () => setParticipationTick(prev => prev + 1);
+    const handleParticipationChange = () => {
+      setParticipationTick((prev) => prev + 1);
+    };
     window.addEventListener('aquarise_participation_changed', handleParticipationChange);
     return () => window.removeEventListener('aquarise_participation_changed', handleParticipationChange);
   }, []);
@@ -122,6 +131,7 @@ export default function CleanupsView({
               safetyNotes: 'Follow local volunteer guidelines.',
               status: 'Upcoming',
               cleanupStatus: 'External Organization Event',
+              verificationStatus: 'verified',
               isCommunityOrganized: false,
               isLiveSourced: true,
               eventUrl: item.cleanupEvent.eventUrl || item.sourceUrl,
@@ -197,13 +207,8 @@ export default function CleanupsView({
   };
 
   const isVerifiedItem = (item) => {
-    return Boolean(
-      item.isUserCreated ||
-      item.verificationStatus === 'verified' ||
-      item.verificationStatus === 'unverified' ||
-      item.sourceUrl ||
-      item.eventUrl
-    );
+    const status = String(item?.verificationStatus || item?.verification_status || '').toLowerCase().trim();
+    return status === 'verified' || item?.isVerified === true || item?.verified === true;
   };
 
   const handleRefresh = async () => {
