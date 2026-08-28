@@ -465,6 +465,10 @@ function AquaRiseApp() {
             joinedMissionIds={joinedMissionIds}
             user={user}
             profile={profile}
+            onRefreshMissions={async () => {
+              await loadCommunityMissions();
+              await loadUserJoinedMissions();
+            }}
             onViewMission={handleViewMissionDetails}
             onJoinMission={handleJoinMission}
             onLeaveMission={handleLeaveMission}

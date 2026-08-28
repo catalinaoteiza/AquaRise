@@ -187,6 +187,15 @@ export default function CleanupsView({
     return item.date >= todayStr;
   };
 
+  const isCommunityMission = (item) => {
+    return Boolean(
+      item.isUserCreated ||
+      item.cleanupStatus === 'AquaRise Mission' ||
+      item.organizerType === 'AquaRise Guardian' ||
+      item.isCommunityOrganized
+    );
+  };
+
   const isVerifiedItem = (item) => {
     return Boolean(
       item.isUserCreated ||
@@ -195,6 +204,20 @@ export default function CleanupsView({
       item.sourceUrl ||
       item.eventUrl
     );
+  };
+
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    try {
+      if (onRefreshMissions) {
+        await onRefreshMissions();
+      }
+      await fetchLiveCleanupOpportunities();
+    } catch (err) {
+      console.warn('[AquaRise Refresh Error]', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const filteredMissions = useMemo(() => {
@@ -220,7 +243,7 @@ export default function CleanupsView({
       } else if (activeFilter === 'past') {
         matchesTab = !isUpcoming(m);
       } else if (activeFilter === 'aquarise') {
-        matchesTab = (m.isUserCreated || m.cleanupStatus === 'AquaRise Mission' || m.organizerType === 'AquaRise Guardian') && isUpcoming(m);
+        matchesTab = isCommunityMission(m);
       } else if (activeFilter === 'joined') {
         matchesTab = joinedMissionIds.includes(m.id) || isCleanupParticipating(m);
       }
@@ -305,7 +328,7 @@ export default function CleanupsView({
               <span>Organize Cleanup</span>
             </button>
             <button
-              onClick={fetchLiveCleanupOpportunities}
+              onClick={handleRefresh}
               disabled={isLoading}
               className="p-2.5 rounded-full bg-white hover:bg-teal-50 border border-[#92F1EC] text-[#19887F] transition-all cursor-pointer shrink-0"
               title="Refresh discovery"
@@ -350,7 +373,7 @@ export default function CleanupsView({
                   : 'bg-transparent text-slate-600 hover:bg-teal-50'
               }`}
             >
-              AquaRise Missions ({allMissionsList.filter((m) => (m.isUserCreated || m.cleanupStatus === 'AquaRise Mission' || m.organizerType === 'AquaRise Guardian') && isUpcoming(m)).length})
+              AquaRise Missions ({allMissionsList.filter(isCommunityMission).length})
             </button>
 
             <button
