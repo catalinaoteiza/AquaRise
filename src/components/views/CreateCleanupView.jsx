@@ -94,9 +94,12 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onCrea
       return;
     }
 
-    // Strict future/today date and time validation
+    // Strict future/same-day date & time validation
     if (formData.date < todayStr) {
-      setDateError('Cleanup date and time must be now or in the future.');
+      setDateError('Cleanup date must be today or in the future.');
+      setTimeout(() => {
+        document.getElementById('create-cleanup-error-banner')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
       return;
     }
 
@@ -106,7 +109,10 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onCrea
         const eventTime = new Date();
         eventTime.setHours(hours, minutes, 0, 0);
         if (eventTime < new Date()) {
-          setDateError('Cleanup date and time must be now or in the future.');
+          setDateError('Cleanup start time for today must be in the future.');
+          setTimeout(() => {
+            document.getElementById('create-cleanup-error-banner')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 50);
           return;
         }
       }
@@ -441,6 +447,73 @@ export default function CreateCleanupView({ initialData, onSubmitSuccess, onCrea
               </div>
             </div>
           </div>
+
+          {/* 4. Cleanup Image (Optional) */}
+          <div className="space-y-6">
+            <h2 className="text-lg font-black text-[#071325] border-b border-teal-100 pb-3 flex items-center gap-2">
+              <Image className="w-5 h-5 text-[#19887F]" />
+              <span>4. Cleanup Image (Optional)</span>
+            </h2>
+
+            <div className="space-y-4">
+              <p className="text-xs text-slate-600 font-medium">
+                Upload a banner photo for your cleanup site. Accepted formats: <strong>JPEG, PNG, WebP</strong> (Max 5 MB).
+              </p>
+
+              {bannerPhoto ? (
+                <div className="relative rounded-2xl overflow-hidden border border-[#92F1EC] bg-teal-50 max-h-64 sm:max-h-80 group">
+                  <img src={bannerPhoto} alt="Banner Preview" className="w-full h-full object-cover max-h-64 sm:max-h-80" />
+                  <div className="absolute top-3 right-3 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3 py-1.5 rounded-xl bg-white/90 hover:bg-white text-ocean-950 font-bold text-xs shadow-md backdrop-blur-sm transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-[#076DDF]" />
+                      <span>Replace</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveBanner}
+                      className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Remove</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-8 rounded-2xl border-2 border-dashed border-teal-200 bg-teal-50/40 hover:bg-teal-50 hover:border-[#19887F] transition-all text-center cursor-pointer space-y-3"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-white border border-[#92F1EC] text-[#19887F] mx-auto flex items-center justify-center shadow-sm">
+                    <Upload className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-[#076DDF] block">Click to choose a banner image</span>
+                    <span className="text-[11px] text-slate-500 font-medium block mt-0.5">JPEG, PNG, or WebP up to 5 MB</span>
+                  </div>
+                </div>
+              )}
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleBannerSelect}
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+              />
+            </div>
+          </div>
+
+          {/* Validation Error Banner before Submit */}
+          {dateError && (
+            <div id="create-cleanup-error-banner" className="bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-2xl text-xs font-bold flex items-center gap-3 animate-fadeIn">
+              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+              <span>{dateError}</span>
+            </div>
+          )}
 
           {/* Submit Action */}
           <div className="pt-4 border-t border-teal-100 flex flex-col sm:flex-row items-center justify-end gap-4">
