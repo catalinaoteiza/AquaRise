@@ -70,8 +70,15 @@ export default function Footer({ onNavClick, onBecomeGuardian }) {
                   Verify Certificate
                 </button>
               </li>
+              <li>
+                <button onClick={() => onNavClick('supporter')} className="hover:text-amber-300 transition-colors text-amber-200/90 font-bold flex items-center gap-1.5">
+                  <span>AquaRise Supporter</span>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-400/20 text-amber-300 font-extrabold">New</span>
+                </button>
+              </li>
             </ul>
           </div>
+
 
           {/* Environmental Mission Column */}
           <div className="space-y-3">

@@ -5,6 +5,7 @@ import Toast from './components/common/Toast';
 
 // Context & Auth
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { RevenueCatProvider } from './context/RevenueCatContext';
 
 // Views
 import HomeView from './components/views/HomeView';
@@ -20,6 +21,8 @@ import CommunityView from './components/views/CommunityView';
 import MyImpactView from './components/views/MyImpactView';
 import CertificateDetailView from './components/views/CertificateDetailView';
 import VerifyCertificateView from './components/views/VerifyCertificateView';
+import SupporterView from './components/views/SupporterView';
+
 
 // Modals
 import AuthModal from './components/modals/AuthModal';
@@ -599,7 +602,12 @@ function AquaRiseApp() {
             onViewCertificate={(cert) => handleViewCertificate(cert)}
             onVerifyPage={() => setActiveTab('verify')}
             onNavigateCleanups={() => setActiveTab('cleanups')}
+            onNavigateSupporter={() => {
+              setActiveTab('supporter');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           />
+
         );
 
       case 'certificate':
@@ -623,6 +631,20 @@ function AquaRiseApp() {
             onViewCertificate={(cert) => handleViewCertificate(cert)}
           />
         );
+
+      case 'supporter':
+        return (
+          <SupporterView
+            user={user}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+            onBack={() => {
+              setActiveTab('home');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onToast={showToast}
+          />
+        );
+
 
       default:
         return (
@@ -792,7 +814,10 @@ function AquaRiseApp() {
 export default function App() {
   return (
     <AuthProvider>
-      <AquaRiseApp />
+      <RevenueCatProvider>
+        <AquaRiseApp />
+      </RevenueCatProvider>
     </AuthProvider>
   );
 }
+

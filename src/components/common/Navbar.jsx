@@ -14,9 +14,13 @@ import {
   User,
   LogOut,
   ChevronDown,
-  Settings
+  Settings,
+  Sparkles
 } from 'lucide-react';
 import Logo from './Logo';
+import SupporterBadge from './SupporterBadge';
+import { useRevenueCat } from '../../context/RevenueCatContext';
+
 
 export default function Navbar({
   activeTab,
@@ -37,6 +41,7 @@ export default function Navbar({
   
   const dropdownRef = useRef(null);
   const isGuardian = Boolean(profile?.isGuardian);
+  const { isSupporter } = useRevenueCat();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -133,7 +138,22 @@ export default function Navbar({
 
           {/* Right Action / Auth & Profile Dropdown */}
           <div className="hidden lg:flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => handleNavClick('supporter')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer ${
+                activeTab === 'supporter'
+                  ? 'bg-amber-300 text-ocean-950 shadow-md font-black scale-105'
+                  : 'bg-white/10 hover:bg-white/20 text-amber-200 border border-amber-300/40'
+              }`}
+              title="AquaRise Supporter Membership"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>{isSupporter ? 'Supporter' : 'Support'}</span>
+            </button>
+
             {user ? (
+
               /* Authenticated User Profile Dropdown */
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -160,16 +180,35 @@ export default function Navbar({
                     <div className="px-4 py-2.5 border-b border-teal-100 bg-teal-50/50 rounded-t-2xl">
                       <p className="font-black text-ocean-950 truncate">{userDisplayName}</p>
                       <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
-                      {isGuardian && (
-                        <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">
-                          <Shield className="w-3 h-3 text-emerald-600" />
-                          <span>Guardian</span>
-                        </span>
-                      )}
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                        {isGuardian && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">
+                            <Shield className="w-3 h-3 text-emerald-600" />
+                            <span>Guardian</span>
+                          </span>
+                        )}
+                        {isSupporter && (
+                          <SupporterBadge size="sm" />
+                        )}
+                      </div>
                     </div>
 
                     {/* Menu Items */}
                     <div className="py-1">
+                      <button
+                        type="button"
+                        onClick={() => handleDropdownSelect('supporter')}
+                        className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-amber-50 text-slate-700 hover:text-amber-950 font-bold transition-colors cursor-pointer"
+                      >
+                        <Sparkles className="w-4 h-4 text-amber-500" />
+                        <span>{isSupporter ? 'Supporter Status' : 'AquaRise Supporter'}</span>
+                        {isSupporter && (
+                          <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-extrabold">
+                            Active
+                          </span>
+                        )}
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => handleDropdownSelect('my-cleanups')}
@@ -178,6 +217,7 @@ export default function Navbar({
                         <Bookmark className="w-4 h-4 text-[#076DDF]" />
                         <span>My Cleanups</span>
                       </button>
+
 
                       <button
                         type="button"
@@ -290,7 +330,27 @@ export default function Navbar({
             );
           })}
 
+          <button
+            onClick={() => handleNavClick('supporter')}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all border border-amber-400/40 ${
+              activeTab === 'supporter'
+                ? 'bg-amber-300 text-[#071325] font-black'
+                : 'bg-amber-400/10 text-amber-200 hover:bg-amber-400/20'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              <span>AquaRise Supporter</span>
+            </div>
+            {isSupporter && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/30 text-amber-200 font-extrabold">
+                Active
+              </span>
+            )}
+          </button>
+
           {user ? (
+
             <div className="pt-3 border-t border-[#35AEAC]/40 space-y-2">
               <button
                 onClick={() => handleNavClick('my-cleanups')}

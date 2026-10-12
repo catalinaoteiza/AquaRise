@@ -4,6 +4,8 @@ import { calculateGuardianPoints, getGuardianLevel, evaluateAchievements } from 
 import { isEligibleForCertificate } from '../../utils/certificate';
 import { canSubmitCompletionEvidence } from '../../utils/cleanupUtils.js';
 import { isEvidenceOfficiallyVerified } from '../../utils/auth.js';
+import { useRevenueCat } from '../../context/RevenueCatContext';
+import SupporterBadge from '../common/SupporterBadge';
 
 export default function MyImpactView({
   user,
@@ -20,9 +22,12 @@ export default function MyImpactView({
   onViewCertificate,
   onNavigateCleanups,
   onNavigateExplore,
-  onNavigateReport
+  onNavigateReport,
+  onNavigateSupporter
 }) {
+  const { isSupporter } = useRevenueCat();
   const [copiedShare, setCopiedShare] = useState(false);
+
 
   if (!user) {
     return (
@@ -115,8 +120,9 @@ export default function MyImpactView({
             </div>
 
             <div className="space-y-1">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-ocean-950">{profile?.name || 'AquaRise Guardian'}</h1>
+                {isSupporter && <SupporterBadge size="sm" />}
                 <button
                   onClick={onOpenEditProfile}
                   className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-ocean-950 border border-teal-200 transition-colors cursor-pointer"
@@ -159,6 +165,15 @@ export default function MyImpactView({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {onNavigateSupporter && (
+              <button
+                onClick={onNavigateSupporter}
+                className="px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold border border-amber-300 transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+              >
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span>{isSupporter ? 'Supporter Membership' : 'Become a Supporter'}</span>
+              </button>
+            )}
             <button
               onClick={handleShareImpact}
               className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#19887F] text-xs font-bold border border-teal-200 transition-all flex items-center gap-2 cursor-pointer"
@@ -167,6 +182,7 @@ export default function MyImpactView({
               <span>{copiedShare ? 'Copied to Clipboard!' : 'Share Impact Summary'}</span>
             </button>
           </div>
+
         </div>
 
         {/* 1. Guardian Level Progress Bar */}
