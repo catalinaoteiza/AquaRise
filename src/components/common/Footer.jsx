@@ -70,6 +70,12 @@ export default function Footer({ onNavClick, onBecomeGuardian }) {
                   Verify Certificate
                 </button>
               </li>
+              <li>
+                <button onClick={() => onNavClick('donate')} className="hover:text-rose-400 transition-colors text-rose-300 font-bold flex items-center gap-1.5">
+                  <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400" />
+                  <span>Fund a Cleanup (Uganda)</span>
+                </button>
+              </li>
             </ul>
           </div>
 
@@ -77,6 +83,11 @@ export default function Footer({ onNavClick, onBecomeGuardian }) {
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-widest text-slate-200">Community Action</h4>
             <ul className="space-y-2 text-xs">
+              <li>
+                <button onClick={() => onNavClick('donate')} className="hover:text-rose-400 transition-colors text-slate-300 flex items-center gap-1.5">
+                  <span>Sponsor Supplies (Uganda)</span>
+                </button>
+              </li>
               <li>
                 <button onClick={() => onNavClick('cleanups')} className="hover:text-aqua-400 transition-colors">
                   Propose Cleanup Mission
