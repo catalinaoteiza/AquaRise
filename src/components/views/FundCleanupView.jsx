@@ -154,7 +154,7 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
   ];
 
   return (
-    <div className="min-h-screen bg-[#071325] text-slate-100 selection:bg-teal-500/30">
+    <div className="min-h-screen bg-white text-slate-800 selection:bg-teal-100">
       
       {/* Top Breadcrumb / Back Link */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-4">
@@ -162,7 +162,7 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
           <button
             type="button"
             onClick={onNavigateHome}
-            className="inline-flex items-center gap-2 text-xs font-bold text-teal-300 hover:text-white transition-colors cursor-pointer group"
+            className="inline-flex items-center gap-2 text-xs font-bold text-teal-700 hover:text-slate-900 transition-colors cursor-pointer group"
           >
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
             <span>Back to AquaRise Home</span>
@@ -171,28 +171,26 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
       </div>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden pb-16 sm:pb-24 pt-4">
-        {/* Ambient Glow Flares */}
-        <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-rose-500/10 via-teal-500/15 to-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <section className="relative overflow-hidden bg-white pb-16 sm:pb-24 pt-4">
 
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-6">
           
           {/* Collaboration Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-rose-500/20 via-amber-500/20 to-teal-500/20 border border-rose-400/30 text-rose-300 text-xs font-extrabold uppercase tracking-wider shadow-sm backdrop-blur-sm">
-            <Heart className="w-4 h-4 text-rose-400 fill-rose-400 animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-teal-50 border border-teal-200 text-teal-700 text-xs font-extrabold uppercase tracking-wider shadow-sm backdrop-blur-sm">
+            <Heart className="w-4 h-4 text-teal-600 fill-teal-600 animate-pulse" />
             <span>AquaRise × Al Musa Charity Collaboration • Uganda</span>
           </div>
 
           {/* Main Display Headline */}
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.15]">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-slate-900 tracking-tight leading-[1.15]">
             Fund a Community Cleanup in{' '}
-            <span className="bg-gradient-to-r from-amber-300 via-rose-300 to-teal-300 bg-clip-text text-transparent">
+            <span className="text-teal-700">
               Uganda
             </span>
           </h1>
 
           {/* Subtitle / Narrative */}
-          <p className="max-w-2xl mx-auto text-sm sm:text-base text-slate-300 font-medium leading-relaxed">
+          <p className="max-w-2xl mx-auto text-sm sm:text-base text-slate-600 font-medium leading-relaxed">
             Equip grassroots youth volunteers and community water caretakers in Uganda with heavy-duty boots,
             puncture-proof gloves, trash rakes, and waste transport to clear plastic pollution from vulnerable drainage
             canals and freshwater wetlands.
@@ -203,9 +201,9 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
             <button
               type="button"
               onClick={scrollToForm}
-              className="px-8 py-4 rounded-full bg-gradient-to-r from-rose-500 via-amber-500 to-teal-400 hover:from-rose-400 hover:to-teal-300 text-ocean-950 font-black text-sm sm:text-base shadow-xl hover:shadow-2xl transition-all cursor-pointer flex items-center gap-2.5 transform active:scale-95"
+              className="px-8 py-4 rounded-full bg-teal-600 hover:bg-teal-700 text-slate-900 font-black text-sm sm:text-base shadow-xl hover:shadow-2xl transition-all cursor-pointer flex items-center gap-2.5 transform active:scale-95"
             >
-              <Heart className="w-5 h-5 text-rose-950 fill-rose-950" />
+              <Heart className="w-5 h-5 text-slate-900 fill-white" />
               <span>Donate Now</span>
               <ArrowDown className="w-4 h-4" />
             </button>
@@ -213,7 +211,7 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
             <button
               type="button"
               onClick={handleCopyLink}
-              className="px-6 py-4 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm border border-teal-300/30 transition-all cursor-pointer flex items-center gap-2 backdrop-blur-sm"
+              className="px-6 py-4 rounded-full bg-white hover:bg-teal-50 text-slate-700 font-bold text-sm border border-slate-300 transition-all cursor-pointer flex items-center gap-2 backdrop-blur-sm"
             >
               {copiedShare ? (
                 <>
@@ -222,7 +220,7 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
                 </>
               ) : (
                 <>
-                  <Share2 className="w-4 h-4 text-teal-300" />
+                  <Share2 className="w-4 h-4 text-teal-700" />
                   <span>Share Campaign</span>
                 </>
               )}
@@ -230,22 +228,22 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
           </div>
 
           {/* Key Trust Signals Bar */}
-          <div className="pt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto text-xs text-slate-300">
-            <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col items-center text-center">
-              <span className="font-black text-white text-sm sm:text-base text-teal-300">Net funds</span>
-              <span className="text-[11px] text-slate-400 mt-0.5">After applicable fees</span>
+          <div className="pt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto text-xs text-slate-600">
+            <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center text-center">
+              <span className="font-black text-slate-900 text-sm sm:text-base text-teal-700">Net funds</span>
+              <span className="text-[11px] text-slate-500 mt-0.5">After applicable fees</span>
             </div>
-            <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col items-center text-center">
-              <span className="font-black text-white text-sm sm:text-base text-amber-300">Public</span>
-              <span className="text-[11px] text-slate-400 mt-0.5">No Account Required</span>
+            <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center text-center">
+              <span className="font-black text-slate-900 text-sm sm:text-base text-amber-700">Public</span>
+              <span className="text-[11px] text-slate-500 mt-0.5">No Account Required</span>
             </div>
-            <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col items-center text-center">
-              <span className="font-black text-white text-sm sm:text-base text-rose-300">Direct</span>
-              <span className="text-[11px] text-slate-400 mt-0.5">Western Union Transfer</span>
+            <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center text-center">
+              <span className="font-black text-slate-900 text-sm sm:text-base text-rose-300">Direct</span>
+              <span className="text-[11px] text-slate-500 mt-0.5">Western Union Transfer</span>
             </div>
-            <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col items-center text-center">
-              <span className="font-black text-white text-sm sm:text-base text-emerald-300">Verified</span>
-              <span className="text-[11px] text-slate-400 mt-0.5">Donorbox Secure Checkout</span>
+            <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center text-center">
+              <span className="font-black text-slate-900 text-sm sm:text-base text-emerald-300">Verified</span>
+              <span className="text-[11px] text-slate-500 mt-0.5">Donorbox Secure Checkout</span>
             </div>
           </div>
 
@@ -253,7 +251,7 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
       </section>
 
       {/* Main Content Grid: Story & Impact + Embedded Donation Form */}
-      <section id="donation-form-section" className="py-12 border-t border-slate-800/80 bg-[#06101F]">
+      <section id="donation-form-section" className="py-12 border-t border-slate-200 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
@@ -262,18 +260,18 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
             <div className="lg:col-span-6 space-y-10">
               
               {/* Mission Narrative Card */}
-              <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/70 border border-teal-500/20 shadow-xl space-y-6">
+              <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-6">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-black text-teal-400 uppercase tracking-wider">
+                  <div className="flex items-center gap-2 text-xs font-black text-teal-700 uppercase tracking-wider">
                     <Droplets className="w-4 h-4 text-sky-400" />
                     <span>The Environmental Challenge in Uganda</span>
                   </div>
-                  <h2 className="text-2xl sm:text-3xl font-black text-white">
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
                     Protecting Local Catchments from Plastic Flooding
                   </h2>
                 </div>
 
-                <div className="text-xs sm:text-sm text-slate-300 leading-relaxed space-y-3 font-medium">
+                <div className="text-xs sm:text-sm text-slate-600 leading-relaxed space-y-3 font-medium">
                   <p>
                     Across Ugandan urban centers and peri-urban settlements, open drainage canals and streams serve as the
                     lifeline draining rainwater toward Lake Victoria and regional river basins. Without municipal waste
@@ -288,12 +286,12 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
                 </div>
 
                 {/* What Al Musa Charity Does */}
-                <div className="p-5 rounded-2xl bg-[#071F2C] border border-teal-600/30 space-y-3">
-                  <div className="flex items-center gap-2 font-black text-sm text-white">
-                    <Users className="w-4 h-4 text-teal-400" />
+                <div className="p-5 rounded-2xl bg-teal-50 border border-teal-200 space-y-3">
+                  <div className="flex items-center gap-2 font-black text-sm text-slate-900">
+                    <Users className="w-4 h-4 text-teal-700" />
                     <span>Al Musa Charity On-The-Ground Action</span>
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
+                  <p className="text-xs text-slate-600 leading-relaxed">
                     Al Musa Charity mobilizes local Ugandan youth, students, and community volunteers to conduct rigorous
                     physical cleanup campaigns. Volunteers enter blocked channels with rakes and sacks to manually remove
                     tons of plastic waste before it reaches deeper river tributaries.
@@ -301,74 +299,40 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
                 </div>
               </div>
 
-              {/* Suggested Contribution Amounts */}
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
-                    <h3 className="text-lg font-black text-white">Suggested Contribution Levels</h3>
-                  </div>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Amounts shown are suggested contribution levels to illustrate how community donations help support volunteer gear, collection tools, and waste transport in Uganda.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {impactTiers.map((tier, idx) => {
-                    const Icon = tier.icon;
-                    return (
-                      <div
-                        key={idx}
-                        className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-teal-500/40 transition-colors space-y-2.5"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-lg font-black text-amber-300">{tier.amount}</span>
-                          <div className="p-2 rounded-xl bg-teal-500/10 text-teal-300">
-                            <Icon className="w-4 h-4" />
-                          </div>
-                        </div>
-                        <h4 className="font-extrabold text-white text-xs sm:text-sm">{tier.title}</h4>
-                        <p className="text-[11px] text-slate-400 leading-relaxed">{tier.desc}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
               {/* Mandatory Transparency & Fund Flow Notice */}
-              <div className="p-6 rounded-3xl bg-slate-950/90 border border-amber-400/40 shadow-xl space-y-4">
-                <div className="flex items-center gap-2 text-xs font-black text-amber-300">
+              <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 text-xs font-black text-amber-700">
                   <Info className="w-4 h-4 text-amber-400 shrink-0" />
                   <span>TRANSPARENCY & FUND FLOW DETAILS</span>
                 </div>
 
-                <div className="text-xs text-slate-300 space-y-3 leading-relaxed">
-                  <p className="font-medium text-amber-100 bg-amber-500/10 p-3 rounded-xl border border-amber-400/20">
+                <div className="text-xs text-slate-600 space-y-3 leading-relaxed">
+                  <p className="font-medium text-amber-900 bg-amber-50 p-3 rounded-xl border border-amber-200">
                     <strong>Important Fund Transfer Notice:</strong> Funds are collected through AquaRise's connected
                     payment account and intended to be transferred to Al Musa Charity through Western Union. Payment
                     processing and international transfer fees may apply.
                   </p>
 
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-500">
                     <strong>Tax Deductibility Clarification:</strong> Please note that AquaRise and Al Musa Charity make no
                     unsupported claims regarding tax deductibility of contributions in your country or jurisdiction. All
                     funds directly finance grassroots volunteer field supplies (gumboots, gloves, trash sacks, and transport)
                     for physical environmental restoration.
                   </p>
 
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-500">
                     <strong>Payment Processing:</strong> Transactions are securely handled by Donorbox and certified
                     payment processors. AquaRise does not store or process payment card information directly.
                   </p>
                 </div>
 
-                <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
-                  <span className="text-slate-400">Verified Campaign Slug:</span>
+                <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
+                  <span className="text-slate-500">Verified Campaign Slug:</span>
                   <a
                     href={CAMPAIGN_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-mono text-[11px] text-teal-400 hover:underline flex items-center gap-1"
+                    className="font-mono text-[11px] text-teal-700 hover:underline flex items-center gap-1"
                   >
                     <span>aquarise-x-al-musa-charity-uganda-cleanup</span>
                     <ExternalLink className="w-3 h-3" />
@@ -382,9 +346,9 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
             <div className="lg:col-span-6 space-y-6 lg:sticky lg:top-24">
               
               <div className="text-center sm:text-left space-y-1">
-                <span className="text-xs font-bold text-teal-400 uppercase tracking-wider">Direct Contribution</span>
-                <h3 className="text-2xl font-black text-white">Choose Your Donation Amount</h3>
-                <p className="text-xs text-slate-400">
+                <span className="text-xs font-bold text-teal-700 uppercase tracking-wider">Direct Contribution</span>
+                <h3 className="text-2xl font-black text-slate-900">Choose Your Donation Amount</h3>
+                <p className="text-xs text-slate-500">
                   Make a one-time contribution to help equip local volunteers in the field.
                 </p>
               </div>
@@ -393,15 +357,15 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
               <DonorboxWidget />
 
               {/* Direct External Link Fallback Box */}
-              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 text-center space-y-2 text-xs">
-                <p className="text-slate-400">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-2 text-xs">
+                <p className="text-slate-500">
                   Prefer donating in a separate window or having browser issues?
                 </p>
                 <a
                   href={CAMPAIGN_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 font-extrabold text-xs border border-teal-500/30 transition-all cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-700 font-extrabold text-xs border border-teal-500/30 transition-all cursor-pointer"
                 >
                   <span>Open Official Campaign Page on Donorbox</span>
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -416,34 +380,34 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
       </section>
 
       {/* Public Social Sharing Section */}
-      <section className="py-16 border-t border-slate-800 bg-[#071325]">
+      <section className="py-16 border-t border-slate-200 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-400/30 text-teal-300 text-xs font-extrabold uppercase tracking-wider">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-400/30 text-teal-700 text-xs font-extrabold uppercase tracking-wider">
             <Share2 className="w-3.5 h-3.5" />
             <span>Multiply Your Impact</span>
           </div>
 
-          <h3 className="text-2xl sm:text-4xl font-black text-white">
+          <h3 className="text-2xl sm:text-4xl font-black text-slate-900">
             Share this Campaign with Your Community
           </h3>
 
-          <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto leading-relaxed">
             Sharing takes only 5 seconds and directly puts cleanup tools in the hands of Ugandan volunteers. Share this
             public link on WhatsApp, Instagram bio, TikTok, or Twitter/X:
           </p>
 
           {/* Shareable URL Bar with Copy Button */}
-          <div className="max-w-lg mx-auto flex items-center bg-slate-900 border border-slate-700 rounded-2xl p-1.5 shadow-inner">
+          <div className="max-w-lg mx-auto flex items-center bg-slate-50 border border-slate-300 rounded-2xl p-1.5 shadow-inner">
             <input
               type="text"
               readOnly
               value={getPublicShareUrl()}
-              className="bg-transparent px-3 py-2 text-xs font-mono text-teal-300 w-full focus:outline-none select-all"
+              className="bg-transparent px-3 py-2 text-xs font-mono text-teal-700 w-full focus:outline-none select-all"
             />
             <button
               type="button"
               onClick={handleCopyLink}
-              className="px-4 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-ocean-950 font-black text-xs shrink-0 transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-black text-xs shrink-0 transition-all cursor-pointer flex items-center gap-1.5"
             >
               {copiedShare ? (
                 <>
@@ -464,7 +428,7 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
             <button
               type="button"
               onClick={handleShareWhatsApp}
-              className="px-4 py-2 rounded-xl bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] border border-[#25D366]/40 text-xs font-bold transition-all cursor-pointer flex items-center gap-2"
+              className="px-4 py-2 rounded-xl bg-green-50 hover:bg-green-100 text-[#25D366] border border-[#25D366]/40 text-xs font-bold transition-all cursor-pointer flex items-center gap-2"
             >
               <span>Share to WhatsApp</span>
             </button>
@@ -472,7 +436,7 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
             <button
               type="button"
               onClick={handleShareTwitter}
-              className="px-4 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-400/40 text-xs font-bold transition-all cursor-pointer flex items-center gap-2"
+              className="px-4 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-2"
             >
               <span>Post on X (Twitter)</span>
             </button>
@@ -481,7 +445,7 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
               href="https://www.instagram.com/aqua_riseapp/"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-400/40 text-xs font-bold transition-all cursor-pointer flex items-center gap-2"
+              className="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-2"
             >
               <span>Tag @aqua_riseapp</span>
             </a>
@@ -491,15 +455,15 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 border-t border-slate-800 bg-[#06101F]">
+      <section className="py-16 border-t border-slate-200 bg-slate-50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           
           <div className="text-center space-y-2">
-            <div className="inline-flex items-center gap-1.5 text-xs font-black text-teal-400 uppercase tracking-wider">
-              <HelpCircle className="w-4 h-4 text-teal-400" />
+            <div className="inline-flex items-center gap-1.5 text-xs font-black text-teal-700 uppercase tracking-wider">
+              <HelpCircle className="w-4 h-4 text-teal-700" />
               <span>Questions & Answers</span>
             </div>
-            <h3 className="text-2xl sm:text-3xl font-black text-white">Frequently Asked Questions</h3>
+            <h3 className="text-2xl sm:text-3xl font-black text-slate-900">Frequently Asked Questions</h3>
           </div>
 
           <div className="space-y-3">
@@ -508,23 +472,23 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
               return (
                 <div
                   key={idx}
-                  className="rounded-2xl bg-slate-900/80 border border-slate-800 overflow-hidden transition-all"
+                  className="rounded-2xl bg-white border border-slate-200 overflow-hidden transition-all"
                 >
                   <button
                     type="button"
                     onClick={() => toggleFaq(idx)}
-                    className="w-full px-5 py-4 text-left flex items-center justify-between gap-4 text-xs sm:text-sm font-extrabold text-white hover:text-teal-300 transition-colors cursor-pointer"
+                    className="w-full px-5 py-4 text-left flex items-center justify-between gap-4 text-xs sm:text-sm font-extrabold text-slate-900 hover:text-teal-700 transition-colors cursor-pointer"
                   >
                     <span>{faq.question}</span>
                     <ChevronDown
-                      className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
-                        isOpen ? 'rotate-180 text-teal-300' : ''
+                      className={`w-4 h-4 text-slate-500 shrink-0 transition-transform duration-200 ${
+                        isOpen ? 'rotate-180 text-teal-700' : ''
                       }`}
                     />
                   </button>
 
                   {isOpen && (
-                    <div className="px-5 pb-4 text-xs text-slate-300 leading-relaxed border-t border-slate-800/60 pt-3">
+                    <div className="px-5 pb-4 text-xs text-slate-600 leading-relaxed border-t border-slate-800/60 pt-3">
                       {faq.answer}
                     </div>
                   )}
