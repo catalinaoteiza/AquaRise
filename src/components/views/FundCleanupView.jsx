@@ -134,7 +134,7 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
     {
       question: 'How are donations processed and where does the money go?',
       answer:
-        "Funds are collected through AquaRise's connected payment account and intended to be transferred to Al Musa Charity through Western Union. Payment processing and international transfer fees may apply. 100% of received campaign funds are deployed for volunteer cleanup equipment, safety gear, tools, and waste transportation."
+        "Funds are collected through AquaRise's connected payment account and intended to be transferred to Al Musa Charity through Western Union. Payment processing and international transfer fees may apply. The net campaign proceeds remaining after applicable payment processing and international transfer fees are intended to be transferred to Al Musa Charity for volunteer cleanup equipment, safety gear, tools, and waste transportation."
     },
     {
       question: 'Is my donation tax-deductible?',
@@ -232,8 +232,8 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
           {/* Key Trust Signals Bar */}
           <div className="pt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto text-xs text-slate-300">
             <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col items-center text-center">
-              <span className="font-black text-white text-sm sm:text-base text-teal-300">100%</span>
-              <span className="text-[11px] text-slate-400 mt-0.5">Grassroots Volunteer Gear</span>
+              <span className="font-black text-white text-sm sm:text-base text-teal-300">Net funds</span>
+              <span className="text-[11px] text-slate-400 mt-0.5">After applicable fees</span>
             </div>
             <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col items-center text-center">
               <span className="font-black text-white text-sm sm:text-base text-amber-300">Public</span>
@@ -385,7 +385,7 @@ export default function FundCleanupView({ onNavigateHome, onToast }) {
                 <span className="text-xs font-bold text-teal-400 uppercase tracking-wider">Direct Contribution</span>
                 <h3 className="text-2xl font-black text-white">Choose Your Donation Amount</h3>
                 <p className="text-xs text-slate-400">
-                  Select a one-time gift or monthly support. Every contribution directly equips a volunteer in the field.
+                  Make a one-time contribution to help equip local volunteers in the field.
                 </p>
               </div>
 
