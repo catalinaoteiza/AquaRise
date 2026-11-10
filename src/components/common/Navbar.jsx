@@ -14,7 +14,8 @@ import {
   User,
   LogOut,
   ChevronDown,
-  Settings
+  Settings,
+  Heart
 } from 'lucide-react';
 import Logo from './Logo';
 
@@ -132,7 +133,22 @@ export default function Navbar({
           </nav>
 
           {/* Right Action / Auth & Profile Dropdown */}
-          <div className="hidden lg:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-2.5">
+            {/* Fund a Cleanup (Uganda) - Publicly Accessible to All Visitors */}
+            <button
+              type="button"
+              onClick={() => handleNavClick('donate')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black transition-all duration-200 cursor-pointer shadow-sm ${
+                activeTab === 'donate'
+                  ? 'bg-rose-500 text-white shadow-md scale-105 ring-2 ring-rose-300'
+                  : 'bg-gradient-to-r from-rose-500 via-amber-500 to-teal-300 text-ocean-950 hover:brightness-110'
+              }`}
+              title="Fund a Community Cleanup in Uganda with Al Musa Charity"
+            >
+              <Heart className={`w-3.5 h-3.5 ${activeTab === 'donate' ? 'text-white fill-white' : 'text-rose-950 fill-rose-950'}`} />
+              <span>Fund a Cleanup</span>
+            </button>
+
             {user ? (
               /* Authenticated User Profile Dropdown */
               <div className="relative" ref={dropdownRef}>
@@ -170,6 +186,15 @@ export default function Navbar({
 
                     {/* Menu Items */}
                     <div className="py-1">
+                      <button
+                        type="button"
+                        onClick={() => handleDropdownSelect('donate')}
+                        className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-rose-50 text-slate-700 hover:text-rose-950 font-bold transition-colors cursor-pointer border-b border-rose-100/50"
+                      >
+                        <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
+                        <span>Fund a Cleanup (Uganda)</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => handleDropdownSelect('my-cleanups')}
@@ -289,6 +314,24 @@ export default function Navbar({
               </button>
             );
           })}
+
+          {/* Fund a Cleanup (Uganda) Mobile Button */}
+          <button
+            onClick={() => handleNavClick('donate')}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all border ${
+              activeTab === 'donate'
+                ? 'bg-rose-500 text-white font-black border-rose-300 shadow-md'
+                : 'bg-gradient-to-r from-rose-500/30 via-amber-500/20 to-teal-500/30 text-rose-100 hover:bg-rose-500/40 border-rose-400/40'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Heart className="w-4 h-4 text-rose-300 fill-rose-300" />
+              <span className="font-black">Fund a Cleanup (Uganda)</span>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/40 text-white font-extrabold uppercase tracking-wide">
+              Donate
+            </span>
+          </button>
 
           {user ? (
             <div className="pt-3 border-t border-[#35AEAC]/40 space-y-2">

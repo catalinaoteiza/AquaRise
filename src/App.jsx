@@ -20,6 +20,7 @@ import CommunityView from './components/views/CommunityView';
 import MyImpactView from './components/views/MyImpactView';
 import CertificateDetailView from './components/views/CertificateDetailView';
 import VerifyCertificateView from './components/views/VerifyCertificateView';
+import FundCleanupView from './components/views/FundCleanupView';
 
 // Modals
 import AuthModal from './components/modals/AuthModal';
@@ -72,11 +73,68 @@ import { MOCK_WATERBODIES } from './data/mockWaterbodies';
 import { MOCK_IMPACT_STATS } from './data/mockImpactData';
 import { MOCK_SUPPLIES } from './data/mockSupplies';
 
+/**
+ * Detects initial tab from public URL path, query params, or hash.
+ * Enables direct public access to /donate or /fund-a-cleanup without login.
+ */
+function getInitialTab() {
+  if (typeof window === 'undefined') return 'home';
+  const path = window.location.pathname.toLowerCase();
+  const searchParams = new URLSearchParams(window.location.search);
+  const hash = window.location.hash.toLowerCase();
+  const tabParam = (searchParams.get('tab') || searchParams.get('page') || '').toLowerCase();
+
+  if (
+    path === '/donate' ||
+    path === '/fund-a-cleanup' ||
+    tabParam === 'donate' ||
+    tabParam === 'fund-a-cleanup' ||
+    hash === '#donate' ||
+    hash === '#fund-a-cleanup'
+  ) {
+    return 'donate';
+  }
+
+  if (['explore', 'cleanups', 'report', 'community', 'impact', 'verify'].includes(tabParam)) {
+    return tabParam;
+  }
+
+  return 'home';
+}
+
 function AquaRiseApp() {
   const { user, profile, loading, signOut, updateProfile, updateGuardianStatus, leaveGuardianProgram, isPasswordRecovery } = useAuth();
 
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTabState] = useState(getInitialTab);
   const [toastInfo, setToastInfo] = useState({ message: '', type: 'success' });
+
+  // Synchronize browser history and URL without full page reloads
+  const setActiveTab = (nextTab) => {
+    setActiveTabState(nextTab);
+    if (typeof window !== 'undefined') {
+      const targetUrl = nextTab === 'home' ? '/' : (nextTab === 'donate' ? '/donate' : `/?tab=${nextTab}`);
+      try {
+        window.history.pushState({ tab: nextTab }, '', targetUrl);
+      } catch (err) {
+        // Fallback if browser pushState is restricted
+      }
+    }
+  };
+
+  // Listen to browser Back/Forward navigation & direct hashtag navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      const currentTab = getInitialTab();
+      setActiveTabState((prev) => (prev !== currentTab ? currentTab : prev));
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('hashchange', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('hashchange', handlePopState);
+    };
+  }, []);
 
   // Modals state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -624,6 +682,18 @@ function AquaRiseApp() {
           />
         );
 
+      case 'donate':
+      case 'fund-a-cleanup':
+        return (
+          <FundCleanupView
+            onNavigateHome={() => {
+              setActiveTab('home');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onToast={showToast}
+          />
+        );
+
       default:
         return (
           <HomeView
@@ -659,6 +729,7 @@ function AquaRiseApp() {
       </main>
 
       <Footer
+        onNavClick={setActiveTab}
         setActiveTab={setActiveTab}
         onBecomeGuardian={handleOpenGuardian}
       />
