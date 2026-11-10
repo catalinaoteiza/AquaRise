@@ -2,7 +2,7 @@ import React from 'react';
 import { ExternalLink, ShieldCheck } from 'lucide-react';
 
 const CAMPAIGN_SLUG = 'aquarise-x-al-musa-charity-uganda-cleanup';
-const CAMPAIGN_URL = `https://donorbox.org/${CAMPAIGN_SLUG}';
+const CAMPAIGN_URL = `https://donorbox.org/${CAMPAIGN_SLUG}`;
 
 /**
  * Donorbox's official embedded donation form.
